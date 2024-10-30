@@ -59,7 +59,7 @@ const Table = ({ data }) => {
         </TableHead>
         <TableBody>
           {tableData.map((item, index) => (
-            <TableRow key={index}>
+            <TableRow key={item.id || index}>
               <TableCell>{item.number}</TableCell>
               <EditableCell value={item.salesManager} index={index} field="salesManager" />
               <EditableCell value={item.nameOfClient} index={index} field="nameOfClient" />
@@ -72,11 +72,16 @@ const Table = ({ data }) => {
               <EditableCell value={item.totalContractAmount} index={index} field="totalContractAmount" />
               <EditableCell value={item.currentBalance} index={index} field="currentBalance" />
               <EditableCell value={item.paymentScheduleChanged} index={index} field="paymentScheduleChanged" />
-              <EditableCell value={item.payment1PlanDate} index={index} field="payment1PlanDate" />
-              <EditableCell value={item.payment1PlanAmount} index={index} field="payment1PlanAmount" />
-              <EditableCell value={item.payment1FactAmount} index={index} field="payment1FactAmount" />
-              <EditableCell value={item.payment1FactDate} index={index} field="payment1FactDate" />
-              {/* Продолжайте добавлять остальные ячейки аналогично */}
+
+              {/* Добавляем ячейки для каждого платежа */}
+              {Array.from({ length: 10 }).map((_, i) => (
+                <React.Fragment key={i}>
+                  <EditableCell value={item[`payment${i + 1}PlanDate`]} index={index} field={`payment${i + 1}PlanDate`} />
+                  <EditableCell value={item[`payment${i + 1}PlanAmount`]} index={index} field={`payment${i + 1}PlanAmount`} />
+                  <EditableCell value={item[`payment${i + 1}FactAmount`]} index={index} field={`payment${i + 1}FactAmount`} />
+                  <EditableCell value={item[`payment${i + 1}FactDate`]} index={index} field={`payment${i + 1}FactDate`} />
+                </React.Fragment>
+              ))}
             </TableRow>
           ))}
         </TableBody>
