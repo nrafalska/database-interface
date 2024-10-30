@@ -1,30 +1,87 @@
-// src/Table.js
-import React from 'react';
+import React, { useState } from 'react';
+import { toast } from 'react-toastify';
+import axios from 'axios';
+import { Table as MuiTable, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 
 const Table = ({ data }) => {
+  const [tableData, setTableData] = useState(data);
+
+  // Функция для обновления данных на сервере
+  const updateDataOnServer = async (updatedRow) => {
+    try {
+      // Здесь предполагается, что у каждой записи есть уникальный id
+      await axios.put(`http://localhost:3001/data/${updatedRow.id}`, updatedRow);
+      toast.success("Данные успешно обновлены");
+    } catch (error) {
+      toast.error("Ошибка обновления данных");
+      console.error("Error updating data:", error);
+    }
+  };
+
+  // Обработчик изменения данных ячейки
+  const handleBlur = (event, index, field) => {
+    const updatedData = [...tableData];
+    updatedData[index] = { ...updatedData[index], [field]: event.target.innerText };
+    setTableData(updatedData);
+    updateDataOnServer(updatedData[index]);
+  };
+
+  // Вспомогательный компонент для создания редактируемой ячейки
+  const EditableCell = ({ value, index, field }) => (
+    <TableCell contentEditable onBlur={(event) => handleBlur(event, index, field)}>
+      {value}
+    </TableCell>
+  );
+
   return (
-    <table border="1" cellPadding="10" cellSpacing="0">
-      <thead>
-        <tr>
-          <th>Number</th>
-          <th>Sales Manager</th>
-          <th>Client Name</th>
-          <th>Current Balance</th>
-          {/* Добавьте больше заголовков, если нужно */}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((item, index) => (
-          <tr key={index}>
-            <td>{item.number}</td>
-            <td>{item.sales_manager}</td>
-            <td>{item.name_of_client}</td>
-            <td>{item.currentBalance}</td>
-            {/* Добавьте больше ячеек, если нужно */}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <TableContainer component={Paper}>
+      <MuiTable>
+        <TableHead>
+          <TableRow>
+            <TableCell>Number</TableCell>
+            <TableCell>Sales Manager</TableCell>
+            <TableCell>Name of Client</TableCell>
+            <TableCell>Manager Name</TableCell>
+            <TableCell>Collection Status</TableCell>
+            <TableCell>Date Till DNC</TableCell>
+            <TableCell>Reason DNC</TableCell>
+            <TableCell>Company Name</TableCell>
+            <TableCell>Short Useful Info</TableCell>
+            <TableCell>Total Contract Amount</TableCell>
+            <TableCell>Current Balance</TableCell>
+            <TableCell>Payment Schedule Changed?</TableCell>
+            <TableCell>Payment 1 Plan Date</TableCell>
+            <TableCell>Payment 1 Plan Amount</TableCell>
+            <TableCell>Payment 1 Fact Amount</TableCell>
+            <TableCell>Payment 1 Fact Date</TableCell>
+            {/* Добавьте остальные заголовки аналогично */}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {tableData.map((item, index) => (
+            <TableRow key={index}>
+              <TableCell>{item.number}</TableCell>
+              <EditableCell value={item.salesManager} index={index} field="salesManager" />
+              <EditableCell value={item.nameOfClient} index={index} field="nameOfClient" />
+              <EditableCell value={item.managerName} index={index} field="managerName" />
+              <EditableCell value={item.collectionStatus} index={index} field="collectionStatus" />
+              <EditableCell value={item.dateTillDNC} index={index} field="dateTillDNC" />
+              <EditableCell value={item.reasonDNC} index={index} field="reasonDNC" />
+              <EditableCell value={item.companyName} index={index} field="companyName" />
+              <EditableCell value={item.shortUsefulInfo} index={index} field="shortUsefulInfo" />
+              <EditableCell value={item.totalContractAmount} index={index} field="totalContractAmount" />
+              <EditableCell value={item.currentBalance} index={index} field="currentBalance" />
+              <EditableCell value={item.paymentScheduleChanged} index={index} field="paymentScheduleChanged" />
+              <EditableCell value={item.payment1PlanDate} index={index} field="payment1PlanDate" />
+              <EditableCell value={item.payment1PlanAmount} index={index} field="payment1PlanAmount" />
+              <EditableCell value={item.payment1FactAmount} index={index} field="payment1FactAmount" />
+              <EditableCell value={item.payment1FactDate} index={index} field="payment1FactDate" />
+              {/* Продолжайте добавлять остальные ячейки аналогично */}
+            </TableRow>
+          ))}
+        </TableBody>
+      </MuiTable>
+    </TableContainer>
   );
 };
 
