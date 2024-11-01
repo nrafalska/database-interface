@@ -1,5 +1,4 @@
 // src/App.js
-import * as React from 'react';
 import {
     Admin,
     Resource,
