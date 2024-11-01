@@ -10,8 +10,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
     "cors": "^2.8.5",
     "express": "^4.21.1",
-    "googleapis": "^144.0.0"
+    "googleapis": "^144.0.0",
+    "react-toastify": "^10.0.6"
   }
 }
