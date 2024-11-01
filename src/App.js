@@ -3,7 +3,6 @@ import * as React from 'react';
 import {
     Admin,
     Resource,
-    ListGuesser,
     Show,
     TabbedShowLayout,
     Tab,
@@ -11,18 +10,37 @@ import {
     EditButton,
     DeleteButton,
     TopToolbar
-} from 'react-admin'; // Здесь добавлены EditButton и DeleteButton
+} from 'react-admin';
 import simpleRestProvider from 'ra-data-simple-rest';
 import authProvider from './authProvider';
 import UserCreate from './UserCreate';
 import UserEdit from './UserEdit';
-import UserList from './UserList';  // Импортируем кастомный список
+import UserList from './UserList'; // Импорт кастомного списка
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import AuthComponent from './components/AuthComponent';
+import LogoutComponent from './components/LogoutComponent';
+import React, { useEffect, useState } from 'react';
 
-// Панель действий для каждой записи (кнопки Edit и Delete)
+// Панель действий для каждой записи
 const CustomActions = ({ basePath, data }) => (
     <TopToolbar>
-        <EditButton basePath={basePath} record={data} />       {/* Кнопка редактирования */}
-        <DeleteButton basePath={basePath} record={data} />     {/* Кнопка удаления */}
+        {data && (
+            <>
+                <EditButton
+                    basePath={basePath}
+                    record={data}
+                    onClick={() => showNotification('Редактирование записи')}
+                />
+                <DeleteButton
+                    basePath={basePath}
+                    record={data}
+                    undoable={false} // Чтобы уведомление сразу показывало результат
+                    onSuccess={() => showNotification('Запись успешно удалена', 'info')}
+                    onFailure={() => showNotification('Ошибка при удалении записи', 'error')}
+                />
+            </>
+        )}
     </TopToolbar>
 );
 
@@ -43,21 +61,50 @@ const UserShow = (props) => (
     </Show>
 );
 
-// Главный компонент приложения
-const App = () => (
-    <Admin authProvider={authProvider} dataProvider={simpleRestProvider('http://localhost:3001')}>
-        {['active', 'inactive'].map((resource) => (
-            <Resource
-                key={resource}
-                name={resource}
-                list={UserList}             // Используем кастомный список с кнопками редактирования и удаления
-                show={UserShow}              // Компонент для отображения информации с панелью действий
-                create={UserCreate}          // Компонент для добавления записи
-                edit={UserEdit}              // Компонент для редактирования записи
-                options={{ label: resource.charAt(0).toUpperCase() + resource.slice(1) }}  // Capitalize label
-            />
-        ))}
-    </Admin>
-);
+// Функция для отображения уведомлений
+const showNotification = (message, type = 'success') => {
+    toast[type](message, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+    });
+};
 
+const App = () => {
+    const [allowedSheets, setAllowedSheets] = useState([]);
+
+    useEffect(() => {
+        // Получаем разрешённые листы при загрузке приложения
+        authProvider.getPermissions().then((sheets) => {
+            setAllowedSheets(sheets);
+        }).catch(() => {
+            console.error('Не удалось получить разрешения для пользователя.');
+        });
+    }, []);
+
+    return (
+        <Admin authProvider={authProvider} dataProvider={simpleRestProvider('http://localhost:3001')}>
+            <ToastContainer />
+            {allowedSheets.length > 0 ? (
+                allowedSheets.map((sheet) => (
+                    <Resource
+                        key={sheet}
+                        name={sheet.toLowerCase().replace(/\s+/g, '-')} // Убедитесь, что ваши имена ресурсов совпадают с тем, что обрабатывает сервер
+                        list={UserList}
+                        show={UserShow}
+                        create={UserCreate}
+                        edit={UserEdit}
+                        options={{ label: sheet }}
+                    />
+                ))
+            ) : (
+                <div>Загрузка ресурсов или недостаточно прав для отображения данных.</div>
+            )}
+        </Admin>
+    );
+};
 export default App;
