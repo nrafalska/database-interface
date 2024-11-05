@@ -8,123 +8,76 @@ const port = 3001;
 app.use(express.json());
 app.use(cors());
 
-// Функция для получения данных из Google Sheets, принимает `range` как параметр
-async function accessSpreadsheet(range) {
+const allData = {}; // Кэшируем данные
+
+async function getAllSheetsData() {
     const auth = new google.auth.GoogleAuth({
-        keyFile: path.join(__dirname, 'credentials.json'), // Проверьте правильность пути к вашему JSON-файлу
+        keyFile: path.join(__dirname, 'database-439720-c45de406784d.json'),
         scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
-    let client;
     try {
-        client = await auth.getClient();
-    } catch (authError) {
-        console.error('Authentication error:', authError);
-        throw new Error('Failed to authenticate with Google API');
-    }
+        const client = await auth.getClient();
+        const googleSheets = google.sheets({ version: 'v4', auth: client });
+        const spreadsheetId = '1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y';
 
-    const googleSheets = google.sheets({ version: 'v4', auth: client });
-    const spreadsheetId = '1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y'; // Ваш реальный ID таблицы
+        // Получаем информацию обо всех листах в таблице
+        const sheetInfo = await googleSheets.spreadsheets.get({ spreadsheetId });
+        const sheets = sheetInfo.data.sheets.map(sheet => sheet.properties.title);
 
-    try {
-        const response = await googleSheets.spreadsheets.values.get({
-            spreadsheetId,
-            range,
-        });
+        // Извлекаем данные из каждого листа
+        for (const sheetName of sheets) {
+            const response = await googleSheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: `${sheetName}!A1:AZ199`,
+            });
 
-        const rows = response.data.values;
-        if (!rows || rows.length < 2) {
-            throw new Error('No data found');
+            const rows = response.data.values;
+            if (rows && rows.length > 1) {
+                const headers = rows[0]; // Первая строка - заголовки
+                const dataRows = rows.slice(1); // Остальные строки - данные
+
+                allData[sheetName.toLowerCase().replace(/\s+/g, '-')] = dataRows.map((row, index) => {
+                    const rowData = {};
+                    headers.forEach((header, i) => {
+                        rowData[header] = row[i] || ''; // Заполняем объект данными строки
+                    });
+                    rowData.id = index + 1; // Добавляем идентификатор
+                    return rowData;
+                });
+            } else {
+                allData[sheetName.toLowerCase().replace(/\s+/g, '-')] = [];
+            }
+
+            // Логируем создание маршрутов
+            console.log(`Route created for /${sheetName.toLowerCase().replace(/\s+/g, '-')}`);
         }
-
-        // Обработка данных
-        const data = rows.slice(1).map((row, index) => ({
-            id: index + 1,
-            number: row[0] || '',
-            salesManager: row[1] || '',
-            nameOfClient: row[2] || '',
-            managerName: row[3] || '',
-            collectionStatus: row[4] || '',
-            dateTillDNC: row[5] || '',
-            reasonDNC: row[6] || '',
-            companyName: row[7] || '',
-            shortUsefulInfo: row[8] || '',
-            totalContractAmount: parseFloat(row[9]) || 0,
-            currentBalance: parseFloat(row[10]) || 0,
-            paymentScheduleChanged: row[11] || '',
-            planDate1: row[12] || '',
-            planAmount1: parseFloat(row[13]) || 0,
-            factAmount1: parseFloat(row[14]) || 0,
-            factDate1: row[15] || '',
-            planDate2: row[16] || '',
-            planAmount2: parseFloat(row[17]) || 0,
-            factAmount2: parseFloat(row[18]) || 0,
-            factDate2: row[19] || '',
-            planDate3: row[20] || '',
-            planAmount3: parseFloat(row[21]) || 0,
-            factAmount3: parseFloat(row[22]) || 0,
-            factDate3: row[23] || '',
-            planDate4: row[24] || '',
-            planAmount4: parseFloat(row[25]) || 0,
-            factAmount4: parseFloat(row[26]) || 0,
-            factDate4: row[27] || '',
-            planDate5: row[28] || '',
-            planAmount5: parseFloat(row[29]) || 0,
-            factAmount5: parseFloat(row[30]) || 0,
-            factDate5: row[31] || '',
-            planDate6: row[32] || '',
-            planAmount6: parseFloat(row[33]) || 0,
-            factAmount6: parseFloat(row[34]) || 0,
-            factDate6: row[35] || '',
-            planDate7: row[36] || '',
-            planAmount7: parseFloat(row[37]) || 0,
-            factAmount7: parseFloat(row[38]) || 0,
-            factDate7: row[39] || '',
-            planDate8: row[40] || '',
-            planAmount8: parseFloat(row[41]) || 0,
-            factAmount8: parseFloat(row[42]) || 0,
-            factDate8: row[43] || '',
-            planDate9: row[44] || '',
-            planAmount9: parseFloat(row[45]) || 0,
-            factAmount9: parseFloat(row[46]) || 0,
-            factDate9: row[47] || '',
-            planDate10: row[48] || '',
-            planAmount10: parseFloat(row[49]) || 0,
-            factAmount10: parseFloat(row[50]) || 0,
-            factDate10: row[51] || ''
-        }));
-
-        return data;
     } catch (error) {
         console.error('Error accessing Google Sheets:', error);
         throw new Error('Failed to retrieve data from Google Sheets');
     }
 }
 
-// Динамическое создание маршрутов для каждого пользователя и типа данных
-const users = [
-    { name: 'natasha', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'nikita', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'ruslan', sheets: ['ACTIVE', 'INACTIVE'] }
-];
-
-users.forEach(user => {
-    user.sheets.forEach(sheetType => {
-        app.get(`/${user.name.toLowerCase()}-${sheetType.toLowerCase()}`, async (req, res) => {
-            try {
-                const data = await accessSpreadsheet(`${user.name} ${sheetType}!A2:AZ199`);
-                res.setHeader('Content-Range', `${user.name.toLowerCase()}-${sheetType.toLowerCase()} 0-${data.length}/${data.length}`);
-                res.setHeader('Access-Control-Expose-Headers', 'Content-Range');
-                res.json(data);
-            } catch (error) {
-                console.error(`Error retrieving data for ${user.name} ${sheetType}:`, error);
-                res.status(500).send('Error retrieving data');
-            }
-        });
-    });
+// Создаем маршруты для каждого листа на основе кэшированных данных
+app.get('/:sheetName', (req, res) => {
+    const sheetName = req.params.sheetName.toLowerCase();
+    if (allData[sheetName]) {
+        res.json(allData[sheetName]);
+    } else {
+        res.status(404).send('Sheet not found');
+    }
 });
 
-// Запуск сервера
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+// Маршрут для извлечения всех листов сразу
+app.get('/all-sheets', (req, res) => {
+    res.json(allData);
+});
+
+// Инициализируем загрузку данных и запускаем сервер
+getAllSheetsData().then(() => {
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+}).catch(err => {
+    console.error('Failed to initialize data:', err);
 });

@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import {
     Admin,
     Resource,
@@ -10,39 +11,23 @@ import {
     TopToolbar
 } from 'react-admin';
 import simpleRestProvider from 'ra-data-simple-rest';
-import UserCreate from './UserCreate';
-import UserEdit from './UserEdit';
-import UserList from './UserList';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import UserCreate from './components/UserCreate';
+import UserEdit from './components/UserEdit';
+import UserList from './components/UserList';
 import AuthComponent from './components/AuthComponent';
-import LogoutComponent from './components/LogoutComponent';
-import React, { useEffect, useState } from 'react';
-import { useAuth } from './authProvider'; // Импортируем только useAuth
+import { useAuth } from './authProvider';
 
-// Панель действий для каждой записи
 const CustomActions = ({ basePath, data }) => (
     <TopToolbar>
         {data && (
             <>
-                <EditButton
-                    basePath={basePath}
-                    record={data}
-                    onClick={() => showNotification('Редактирование записи')}
-                />
-                <DeleteButton
-                    basePath={basePath}
-                    record={data}
-                    undoable={false}
-                    onSuccess={() => showNotification('Запись успешно удалена', 'info')}
-                    onFailure={() => showNotification('Ошибка при удалении записи', 'error')}
-                />
+                <EditButton basePath={basePath} record={data} />
+                <DeleteButton basePath={basePath} record={data} undoable={false} />
             </>
         )}
     </TopToolbar>
 );
 
-// Компонент отображения информации о пользователе с вкладками
 const UserShow = (props) => (
     <Show {...props} actions={<CustomActions />}>
         <TabbedShowLayout>
@@ -59,47 +44,38 @@ const UserShow = (props) => (
     </Show>
 );
 
-// Функция для отображения уведомлений
-const showNotification = (message, type = 'success') => {
-    toast[type](message, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-    });
-};
-
 const App = () => {
-    const { user, allowedSheets, login } = useAuth(); // Используем хук useAuth
+    const { user, allowedSheets, login } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        console.log('Пользователь:', user);
         setIsLoading(!user);
     }, [user]);
 
     return (
         <>
-            <Admin dataProvider={simpleRestProvider('http://localhost:3001')}>
-                <ToastContainer />
-                {!isLoading && allowedSheets.length > 0 ? (
-                    allowedSheets.map((sheet) => (
-                        <Resource
-                            key={sheet}
-                            name={sheet.toLowerCase().replace(/\s+/g, '-')}
-                            list={UserList}
-                            show={UserShow}
-                            create={UserCreate}
-                            edit={UserEdit}
-                            options={{ label: sheet }}
-                        />
-                    ))
-                ) : (
-                    <AuthComponent onLogin={login} />
-                )}
-            </Admin>
+            {isLoading ? (
+                <AuthComponent onLogin={login} />
+            ) : (
+                <Admin dataProvider={simpleRestProvider('http://localhost:3001')}>
+                    {allowedSheets && allowedSheets.length > 0 ? (
+                        allowedSheets.map((sheet) => (
+                            <Resource
+                                key={sheet}
+                                name={sheet.toLowerCase().replace(/\s+/g, '-')}
+                                list={UserList}
+                                show={UserShow}
+                                create={UserCreate}
+                                edit={UserEdit}
+                                options={{ label: sheet }}
+                            />
+                        ))
+                    ) : (
+                        <div>Нет доступных данных для отображения</div>
+                    )}
+                </Admin>
+            )}
         </>
     );
 };

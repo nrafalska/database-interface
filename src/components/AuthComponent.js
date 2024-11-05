@@ -1,37 +1,31 @@
 import React, { useState } from 'react';
-import { useAuth } from '../authProvider'; // Импортируем хук, если он необходим
+import { useAuth } from '../authProvider'; // Убедитесь, что путь корректен
 
 const AuthComponent = ({ onLogin }) => {
     const [username, setUsername] = useState('');
-    const { login } = useAuth(); // Используем метод login из контекста
+    const [error, setError] = useState('');
+    const { login } = useAuth();
 
-    const handleLogin = () => {
-        if (username.trim()) {
-            console.log('Попытка входа с именем пользователя:', username);
-            login({ username }) // используем метод login из контекста
-                .then(() => {
-                    onLogin(username);
-                    console.log('Вход выполнен успешно для:', username);
-                })
-                .catch((err) => {
-                    console.error('Ошибка входа:', err);
-                    alert(err);
-                });
-        } else {
-            alert('Пожалуйста, введите допустимое имя пользователя.');
+    const handleLogin = async () => {
+        try {
+            await login({ username });
+            onLogin(username);
+        } catch (e) {
+            setError('Ошибка входа: проверьте введенные данные');
         }
     };
 
     return (
         <div>
-            <h2>Вход</h2>
+            <h2>Вход в систему</h2>
             <input
                 type="text"
-                placeholder="Введите ваше имя"
+                placeholder="Введите имя пользователя"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
             />
             <button onClick={handleLogin}>Войти</button>
+            {error && <p style={{ color: 'red' }}>{error}</p>}
         </div>
     );
 };

@@ -1,81 +1,59 @@
 import React, { createContext, useState, useContext } from 'react';
 
-// Создаем контекст для авторизации
 const AuthContext = createContext();
+
+// Модель данных пользователей для примера (без проверки пароля)
+const users = {
+    admin: { tabs: ['All'] },
+    Natasha: { tabs: ['Natasha ACTIVE', 'Natasha INACTIVE'] },
+    "Nazarii Kramar": { tabs: ['Nazarii Kramar Active!', 'N Kramar ACTIVE', 'N Kramar INACTIVE'] },
+    "Nikita Shakotko": { tabs: ['Nikita ACTIVE', 'Nikita Shakotko Active!', 'Nikita INACTIVE'] },
+    "Ruslan Dawydenko": { tabs: ['Ruslan ACTIVE', 'Ruslan Dawydenko Active!', 'Ruslan INACTIVE'] },
+    "Alex Megas": { tabs: ['Alex Megas Active!', 'Megas INACTIVE'] },
+    "Vlad (new)": { tabs: ['Vlad (new) ACTIVE', 'Vlad (new) INACTIVE'] },
+    "Vladytslav Shkliarov": { tabs: ['Vladytslav Shkliarov Active!'] },
+    Nebojsa: { tabs: ['Nebojsa ACTIVE', 'Nebojsa INACTIVE'] },
+    "Mark Tarytsanu": { tabs: ['Mark Tarytsanu Active!', 'Mark ACTIVE'] },
+    "Anton Zhidkov": { tabs: ['Anton Zhidkov ACTIVE', 'Anton INACTIVE'] },
+    Julia: { tabs: ['Julia ACTIVE', 'Julia INACTIVE'] },
+    Arkadiy: { tabs: ['Arkadiy ACTIVE', 'Arkadiy Oskol Active!', 'Arkadiy INACTIVE'] },
+    Olga: { tabs: ['Olga ACTIVE', 'Olga Meshcheryakova Active!'] },
+    "Kolya Solomennyi": { tabs: ['Kolya Solomennyi Active!', 'Kolya INACTIVE'] },
+    "Nataliia Denisenko": { tabs: ['Nataliia Denisenko Active', 'Nataliia D INACTIVE'] },
+    "Alina Kolpakova": { tabs: ['Alina Kolpakova Active!', 'Alina Kolpakova InActive'] },
+    "Maryna Urvantseva": { tabs: ['Maryna Urvantseva ACTIVE', 'Maryna Urvantseva INACTIVE'] },
+    "Dmytro Chernuha": { tabs: ['Dmytro Chernuha ACTIVE', 'Dmytro Chernuha INACTIVE'] },
+    "Nikita Yagunov": { tabs: ['Nikita Yagunov ACTIVE', 'Nikita Yagunov INACTIVE'] },
+    "Alexandra Belova": { tabs: ['Alexandra Belova ACTIVE', 'Alexandra Belova INACTIVE'] }
+};
 
 const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [allowedSheets, setAllowedSheets] = useState([]);
 
-    const login = async ({ username, password }) => {
-        try {
-            // Отправка POST-запроса на сервер для аутентификации
-            const response = await fetch('http://localhost:3001/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Login failed. Please check your credentials.');
-            }
-
-            const data = await response.json();
-
-            // Сохранение данных пользователя в состоянии
+    const login = async ({ username }) => {
+        // Проверка наличия пользователя и установка сессии
+        if (users[username]) {
             setUser(username);
-            setAllowedSheets(data.tabs);
-            console.log(`Login successful for "${username}". Allowed sheets:`, data.tabs);
-
-            return Promise.resolve();
-        } catch (error) {
-            console.error('Login error:', error.message || error);
-            return Promise.reject('Login failed. Please try again.');
+            setAllowedSheets(users[username].tabs);
+            console.log('Вход выполнен успешно для:', username);
+        } else {
+            throw new Error('Пользователь не найден');
         }
     };
 
     const logout = () => {
-        if (user) {
-            console.log(`User "${user}" logged out.`);
-        }
         setUser(null);
         setAllowedSheets([]);
-        return Promise.resolve();
-    };
-
-    const checkAuth = () => {
-        return user ? Promise.resolve() : Promise.reject('User not authenticated. Please log in.');
-    };
-
-    const checkError = ({ status }) => {
-        if (status === 401 || status === 403) {
-            setUser(null);
-            setAllowedSheets([]);
-            return Promise.reject('Authorization error. Please log in again.');
-        }
-        return Promise.resolve();
-    };
-
-    const getPermissions = () => {
-        console.log('Checking permissions from state:', allowedSheets);
-        return allowedSheets.length > 0
-            ? Promise.resolve(allowedSheets)
-            : Promise.reject('No permissions found. Please log in.');
     };
 
     return (
-        <AuthContext.Provider value={{ user, allowedSheets, login, logout, checkAuth, checkError, getPermissions }}>
+        <AuthContext.Provider value={{ user, allowedSheets, login, logout }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
-// Хук для использования контекста авторизации
-const useAuth = () => {
-    return useContext(AuthContext);
-};
+const useAuth = () => useContext(AuthContext);
 
-// Экспортируем только то, что используется
 export { AuthProvider, useAuth };
