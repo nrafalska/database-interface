@@ -1,27 +1,37 @@
 import React, { useState } from 'react';
+import { useAuth } from '../authProvider'; // Импортируем хук, если он необходим
 
 const AuthComponent = ({ onLogin }) => {
     const [username, setUsername] = useState('');
+    const { login } = useAuth(); // Используем метод login из контекста
 
     const handleLogin = () => {
         if (username.trim()) {
-            localStorage.setItem('username', username);
-            onLogin(username);
+            console.log('Попытка входа с именем пользователя:', username);
+            login({ username }) // используем метод login из контекста
+                .then(() => {
+                    onLogin(username);
+                    console.log('Вход выполнен успешно для:', username);
+                })
+                .catch((err) => {
+                    console.error('Ошибка входа:', err);
+                    alert(err);
+                });
         } else {
-            alert('Please enter a valid username.');
+            alert('Пожалуйста, введите допустимое имя пользователя.');
         }
     };
 
     return (
         <div>
-            <h2>Login</h2>
+            <h2>Вход</h2>
             <input
                 type="text"
-                placeholder="Enter your name"
+                placeholder="Введите ваше имя"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
             />
-            <button onClick={handleLogin}>Login</button>
+            <button onClick={handleLogin}>Войти</button>
         </div>
     );
 };
