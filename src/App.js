@@ -15,8 +15,10 @@ import UserCreate from './components/UserCreate';
 import UserEdit from './components/UserEdit';
 import UserList from './components/UserList';
 import AuthComponent from './components/AuthComponent';
+import LogoutComponent from './components/LogoutComponent'; // Импорт компонента LogoutComponent
 import { useAuth } from './authProvider';
 
+// Панель действий для каждой записи
 const CustomActions = ({ basePath, data }) => (
     <TopToolbar>
         {data && (
@@ -45,11 +47,10 @@ const UserShow = (props) => (
 );
 
 const App = () => {
-    const { user, allowedSheets, login } = useAuth();
+    const { user, allowedSheets, login, logout } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        console.log('Пользователь:', user);
         setIsLoading(!user);
     }, [user]);
 
@@ -58,23 +59,26 @@ const App = () => {
             {isLoading ? (
                 <AuthComponent onLogin={login} />
             ) : (
-                <Admin dataProvider={simpleRestProvider('http://localhost:3001')}>
-                    {allowedSheets && allowedSheets.length > 0 ? (
-                        allowedSheets.map((sheet) => (
-                            <Resource
-                                key={sheet}
-                                name={sheet.toLowerCase().replace(/\s+/g, '-')}
-                                list={UserList}
-                                show={UserShow}
-                                create={UserCreate}
-                                edit={UserEdit}
-                                options={{ label: sheet }}
-                            />
-                        ))
-                    ) : (
-                        <div>Нет доступных данных для отображения</div>
-                    )}
-                </Admin>
+                <>
+                    <LogoutComponent onLogout={logout} />
+                    <Admin dataProvider={simpleRestProvider('http://localhost:3001')}>
+                        {allowedSheets && allowedSheets.length > 0 ? (
+                            allowedSheets.map((sheet) => (
+                                <Resource
+                                    key={sheet}
+                                    name={sheet.toLowerCase().replace(/\s+/g, '-')}
+                                    list={UserList}
+                                    show={UserShow}
+                                    create={UserCreate}
+                                    edit={UserEdit}
+                                    options={{ label: sheet }}
+                                />
+                            ))
+                        ) : (
+                            <div>Нет доступных данных для отображения</div>
+                        )}
+                    </Admin>
+                </>
             )}
         </>
     );
