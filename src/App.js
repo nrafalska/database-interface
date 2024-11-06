@@ -1,5 +1,4 @@
-// src/App.js
-import * as React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Admin,
     Resource,
@@ -12,39 +11,25 @@ import {
     TopToolbar
 } from 'react-admin';
 import simpleRestProvider from 'ra-data-simple-rest';
-import authProvider from './authProvider';
-import UserCreate from './UserCreate';
-import UserEdit from './UserEdit';
-import UserList from './UserList'; // Импорт кастомного списка
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import UserCreate from './components/UserCreate';
+import UserEdit from './components/UserEdit';
+import UserList from './components/UserList';
 import AuthComponent from './components/AuthComponent';
-import LogoutComponent from './components/LogoutComponent';
-import React, { useEffect, useState } from 'react';
+import LogoutComponent from './components/LogoutComponent'; // Импорт компонента LogoutComponent
+import { useAuth } from './authProvider';
 
 // Панель действий для каждой записи
 const CustomActions = ({ basePath, data }) => (
     <TopToolbar>
         {data && (
             <>
-                <EditButton
-                    basePath={basePath}
-                    record={data}
-                    onClick={() => showNotification('Редактирование записи')}
-                />
-                <DeleteButton
-                    basePath={basePath}
-                    record={data}
-                    undoable={false} // Чтобы уведомление сразу показывало результат
-                    onSuccess={() => showNotification('Запись успешно удалена', 'info')}
-                    onFailure={() => showNotification('Ошибка при удалении записи', 'error')}
-                />
+                <EditButton basePath={basePath} record={data} />
+                <DeleteButton basePath={basePath} record={data} undoable={false} />
             </>
         )}
     </TopToolbar>
 );
 
-// Компонент отображения информации о пользователе с вкладками
 const UserShow = (props) => (
     <Show {...props} actions={<CustomActions />}>
         <TabbedShowLayout>
@@ -61,50 +46,42 @@ const UserShow = (props) => (
     </Show>
 );
 
-// Функция для отображения уведомлений
-const showNotification = (message, type = 'success') => {
-    toast[type](message, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-    });
-};
-
 const App = () => {
-    const [allowedSheets, setAllowedSheets] = useState([]);
+    const { user, allowedSheets, login, logout } = useAuth();
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Получаем разрешённые листы при загрузке приложения
-        authProvider.getPermissions().then((sheets) => {
-            setAllowedSheets(sheets);
-        }).catch(() => {
-            console.error('Не удалось получить разрешения для пользователя.');
-        });
-    }, []);
+        setIsLoading(!user);
+    }, [user]);
 
     return (
-        <Admin authProvider={authProvider} dataProvider={simpleRestProvider('http://localhost:3001')}>
-            <ToastContainer />
-            {allowedSheets.length > 0 ? (
-                allowedSheets.map((sheet) => (
-                    <Resource
-                        key={sheet}
-                        name={sheet.toLowerCase().replace(/\s+/g, '-')} // Убедитесь, что ваши имена ресурсов совпадают с тем, что обрабатывает сервер
-                        list={UserList}
-                        show={UserShow}
-                        create={UserCreate}
-                        edit={UserEdit}
-                        options={{ label: sheet }}
-                    />
-                ))
+        <>
+            {isLoading ? (
+                <AuthComponent onLogin={login} />
             ) : (
-                <div>Загрузка ресурсов или недостаточно прав для отображения данных.</div>
+                <>
+                    <LogoutComponent onLogout={logout} />
+                    <Admin dataProvider={simpleRestProvider('http://localhost:3001')}>
+                        {allowedSheets && allowedSheets.length > 0 ? (
+                            allowedSheets.map((sheet) => (
+                                <Resource
+                                    key={sheet}
+                                    name={sheet.toLowerCase().replace(/\s+/g, '-')}
+                                    list={UserList}
+                                    show={UserShow}
+                                    create={UserCreate}
+                                    edit={UserEdit}
+                                    options={{ label: sheet }}
+                                />
+                            ))
+                        ) : (
+                            <div>Нет доступных данных для отображения</div>
+                        )}
+                    </Admin>
+                </>
             )}
-        </Admin>
+        </>
     );
 };
-export default App;
+
+export default App; 

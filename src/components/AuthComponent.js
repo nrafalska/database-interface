@@ -1,27 +1,31 @@
 import React, { useState } from 'react';
+import { useAuth } from '../authProvider'; // Убедитесь, что путь корректен
 
 const AuthComponent = ({ onLogin }) => {
     const [username, setUsername] = useState('');
+    const [error, setError] = useState('');
+    const { login } = useAuth();
 
-    const handleLogin = () => {
-        if (username.trim()) {
-            localStorage.setItem('username', username);
+    const handleLogin = async () => {
+        try {
+            await login({ username });
             onLogin(username);
-        } else {
-            alert('Please enter a valid username.');
+        } catch (e) {
+            setError('Ошибка входа: пользователь не найден');
         }
     };
 
     return (
         <div>
-            <h2>Login</h2>
+            <h2>Вход в систему</h2>
             <input
                 type="text"
-                placeholder="Enter your name"
+                placeholder="Введите имя пользователя"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
             />
-            <button onClick={handleLogin}>Login</button>
+            <button onClick={handleLogin}>Войти</button>
+            {error && <p style={{ color: 'red' }}>{error}</p>}
         </div>
     );
 };

@@ -1,0 +1,30 @@
+[33mcommit 4a2dd424d313d8f897ea56e0538176b7d42f4753[m[33m ([m[1;36mHEAD[m[33m)[m
+Author: Anastasia <trohanovskaanna@gmail.com>
+Date:   Sat Nov 2 00:20:52 2024 +0200
+
+    CRUD
+
+[33mcommit 4f7172cb6510a5388448d332c4061462b0dc327a[m
+Merge: 30cebaf b57adb3
+Author: Anastasia <trohanovskaanna@gmail.com>
+Date:   Sat Nov 2 00:11:11 2024 +0200
+
+    Resolved merge conflicts
+
+[33mcommit 30cebaf25f75937b6889875c538341357bc3d6e5[m
+Author: Anastasia <trohanovskaanna@gmail.com>
+Date:   Sat Nov 2 00:07:33 2024 +0200
+
+    CRUD
+
+[33mcommit b57adb31875f4c715c67caa2143f7aeee6ecb760[m
+Author: Anastasia <trohanovskaanna@gmail.com>
+Date:   Fri Nov 1 07:16:31 2024 +0200
+
+     Добавлены маршруты и стили в App.js
+
+[33mcommit 51e7be7b29d2f835194c0b5c965f3dbdddef80ee[m
+Author: Anastasia <trohanovskaanna@gmail.com>
+Date:   Wed Oct 30 21:15:42 2024 +0200
+
+    new
