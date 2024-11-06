@@ -31,16 +31,18 @@ const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [allowedSheets, setAllowedSheets] = useState([]);
 
-    const login = async ({ username }) => {
-        // Проверка наличия пользователя и установка сессии
+    const login = ({ username }) => {
+        console.log('Введенное имя пользователя:', username);
         if (users[username]) {
             setUser(username);
             setAllowedSheets(users[username].tabs);
             console.log('Вход выполнен успешно для:', username);
         } else {
+            console.error('Пользователь не найден:', username);
             throw new Error('Пользователь не найден');
         }
     };
+    
 
     const logout = () => {
         setUser(null);
