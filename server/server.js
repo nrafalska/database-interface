@@ -11,7 +11,7 @@ app.use(cors());
 // Функция для получения данных из Google Sheets, принимает `range` как параметр
 async function accessSpreadsheet(range) {
     const auth = new google.auth.GoogleAuth({
-        keyFile: path.join(__dirname, 'credentials.json'), // Проверьте правильность пути к вашему JSON-файлу
+        keyFile: path.join(__dirname, 'credentials.json'), // Убедитесь, что путь к вашему JSON-файлу указан правильно
         scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
@@ -24,7 +24,7 @@ async function accessSpreadsheet(range) {
     }
 
     const googleSheets = google.sheets({ version: 'v4', auth: client });
-    const spreadsheetId = '1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y'; // Ваш реальный ID таблицы
+    const spreadsheetId = '1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y'; // Ваш ID таблицы
 
     try {
         const response = await googleSheets.spreadsheets.values.get({
@@ -33,66 +33,19 @@ async function accessSpreadsheet(range) {
         });
 
         const rows = response.data.values;
-        if (!rows || rows.length < 2) {
+        if (!rows || rows.length === 0) {
             throw new Error('No data found');
         }
 
-        // Обработка данных
-        const data = rows.slice(1).map((row, index) => ({
-            id: index + 1,
-            number: row[0] || '',
-            salesManager: row[1] || '',
-            nameOfClient: row[2] || '',
-            managerName: row[3] || '',
-            collectionStatus: row[4] || '',
-            dateTillDNC: row[5] || '',
-            reasonDNC: row[6] || '',
-            companyName: row[7] || '',
-            shortUsefulInfo: row[8] || '',
-            totalContractAmount: parseFloat(row[9]) || 0,
-            currentBalance: parseFloat(row[10]) || 0,
-            paymentScheduleChanged: row[11] || '',
-            planDate1: row[12] || '',
-            planAmount1: parseFloat(row[13]) || 0,
-            factAmount1: parseFloat(row[14]) || 0,
-            factDate1: row[15] || '',
-            planDate2: row[16] || '',
-            planAmount2: parseFloat(row[17]) || 0,
-            factAmount2: parseFloat(row[18]) || 0,
-            factDate2: row[19] || '',
-            planDate3: row[20] || '',
-            planAmount3: parseFloat(row[21]) || 0,
-            factAmount3: parseFloat(row[22]) || 0,
-            factDate3: row[23] || '',
-            planDate4: row[24] || '',
-            planAmount4: parseFloat(row[25]) || 0,
-            factAmount4: parseFloat(row[26]) || 0,
-            factDate4: row[27] || '',
-            planDate5: row[28] || '',
-            planAmount5: parseFloat(row[29]) || 0,
-            factAmount5: parseFloat(row[30]) || 0,
-            factDate5: row[31] || '',
-            planDate6: row[32] || '',
-            planAmount6: parseFloat(row[33]) || 0,
-            factAmount6: parseFloat(row[34]) || 0,
-            factDate6: row[35] || '',
-            planDate7: row[36] || '',
-            planAmount7: parseFloat(row[37]) || 0,
-            factAmount7: parseFloat(row[38]) || 0,
-            factDate7: row[39] || '',
-            planDate8: row[40] || '',
-            planAmount8: parseFloat(row[41]) || 0,
-            factAmount8: parseFloat(row[42]) || 0,
-            factDate8: row[43] || '',
-            planDate9: row[44] || '',
-            planAmount9: parseFloat(row[45]) || 0,
-            factAmount9: parseFloat(row[46]) || 0,
-            factDate9: row[47] || '',
-            planDate10: row[48] || '',
-            planAmount10: parseFloat(row[49]) || 0,
-            factAmount10: parseFloat(row[50]) || 0,
-            factDate10: row[51] || ''
-        }));
+        // Используем первую строку как заголовок для создания объектов
+        const headers = rows[0];
+        const data = rows.slice(1).map((row, index) => {
+            const rowData = { id: index + 1 };
+            headers.forEach((header, i) => {
+                rowData[header] = row[i] || ''; // Присваиваем значение из строки или пустую строку
+            });
+            return rowData;
+        });
 
         return data;
     } catch (error) {
@@ -104,15 +57,35 @@ async function accessSpreadsheet(range) {
 // Динамическое создание маршрутов для каждого пользователя и типа данных
 const users = [
     { name: 'natasha', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'nikita', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'ruslan', sheets: ['ACTIVE', 'INACTIVE'] }
+    { name: 'nazarii_kramar', sheets: ['Active!', 'ACTIVE', 'INACTIVE'] },
+    { name: 'nikita_shakotko', sheets: ['ACTIVE', 'Shakotko Active!', 'INACTIVE'] },
+    { name: 'ruslan_dawydenko', sheets: ['ACTIVE', 'Dawydenko Active!', 'INACTIVE'] },
+    { name: 'alex_megas', sheets: ['Active!', 'INACTIVE'] },
+    { name: 'vlad_new', sheets: ['ACTIVE', 'INACTIVE'] },
+    { name: 'vladytslav_shkliarov', sheets: ['Active!'] },
+    { name: 'nebojsa', sheets: ['ACTIVE', 'INACTIVE', 'Active!'] },
+    { name: 'mark_tarytsanu', sheets: ['Active!', 'ACTIVE'] },
+    { name: 'anton_zhidkov', sheets: ['ACTIVE', 'INACTIVE'] },
+    { name: 'julia', sheets: ['ACTIVE', 'INACTIVE', 'Krendeleva Active!'] },
+    { name: 'arkadiy', sheets: ['ACTIVE', 'Oskol Active!', 'INACTIVE'] },
+    { name: 'olga', sheets: ['ACTIVE', 'Meshcheryakova Active!', 'INACTIVE'] },
+    { name: 'kolya_solomennyi', sheets: ['Active!', 'INACTIVE'] },
+    { name: 'nataliia_denisenko', sheets: ['Active', 'D INACTIVE'] },
+    { name: 'nataliia_grek', sheets: ['Active', 'G INACTIVE'] },
+    { name: 'alina_kolpakova', sheets: ['Active!', 'InActive'] },
+    { name: 'maryna_urvantseva', sheets: ['ACTIVE', 'INACTIVE'] },
+    { name: 'dmytro_chernuha', sheets: ['ACTIVE', 'INACTIVE'] },
+    { name: 'nikita_yagunov', sheets: ['ACTIVE', 'INACTIVE'] },
+    { name: 'alexandra_belova', sheets: ['ACTIVE', 'INACTIVE'] },
+    { name: 'diana_romaniuk', sheets: ['ACTIVE', 'INACTIVE'] }
 ];
 
+// Пример создания маршрутов на основе списка users
 users.forEach(user => {
     user.sheets.forEach(sheetType => {
         app.get(`/${user.name.toLowerCase()}-${sheetType.toLowerCase()}`, async (req, res) => {
             try {
-                const data = await accessSpreadsheet(`${user.name} ${sheetType}!A2:AZ199`);
+                const data = await accessSpreadsheet(`${user.name} ${sheetType}!A1:AZ199`);
                 res.setHeader('Content-Range', `${user.name.toLowerCase()}-${sheetType.toLowerCase()} 0-${data.length}/${data.length}`);
                 res.setHeader('Access-Control-Expose-Headers', 'Content-Range');
                 res.json(data);
@@ -123,6 +96,7 @@ users.forEach(user => {
         });
     });
 });
+
 
 // Запуск сервера
 app.listen(port, () => {

@@ -8,14 +8,16 @@ import {
     TextField,
     EditButton,
     DeleteButton,
-    TopToolbar
+    TopToolbar,
+    UserMenu,
+    Layout
 } from 'react-admin';
 import simpleRestProvider from 'ra-data-simple-rest';
 import UserCreate from './components/UserCreate';
 import UserEdit from './components/UserEdit';
 import UserList from './components/UserList';
 import AuthComponent from './components/AuthComponent';
-import LogoutComponent from './components/LogoutComponent'; // Импорт компонента LogoutComponent
+import LogoutComponent from './components/LogoutComponent';
 import { useAuth } from './authProvider';
 
 // Панель действий для каждой записи
@@ -30,6 +32,7 @@ const CustomActions = ({ basePath, data }) => (
     </TopToolbar>
 );
 
+// Компонент для отображения записи
 const UserShow = (props) => (
     <Show {...props} actions={<CustomActions />}>
         <TabbedShowLayout>
@@ -46,6 +49,7 @@ const UserShow = (props) => (
     </Show>
 );
 
+// Главный компонент приложения
 const App = () => {
     const { user, allowedSheets, login, logout } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
@@ -59,29 +63,29 @@ const App = () => {
             {isLoading ? (
                 <AuthComponent onLogin={login} />
             ) : (
-                <>
-                    <LogoutComponent onLogout={logout} />
-                    <Admin dataProvider={simpleRestProvider('http://localhost:3001')}>
-                        {allowedSheets && allowedSheets.length > 0 ? (
-                            allowedSheets.map((sheet) => (
-                                <Resource
-                                    key={sheet}
-                                    name={sheet.toLowerCase().replace(/\s+/g, '-')}
-                                    list={UserList}
-                                    show={UserShow}
-                                    create={UserCreate}
-                                    edit={UserEdit}
-                                    options={{ label: sheet }}
-                                />
-                            ))
-                        ) : (
-                            <div>Нет доступных данных для отображения</div>
-                        )}
-                    </Admin>
-                </>
+                <Admin
+                    dataProvider={simpleRestProvider('http://localhost:3001')}
+                    userMenu={<UserMenu><LogoutComponent onLogout={logout} /></UserMenu>}
+                >
+                    {allowedSheets && allowedSheets.length > 0 ? (
+                        allowedSheets.map((sheet) => (
+                            <Resource
+                                key={sheet}
+                                name={sheet.toLowerCase().replace(/\s+/g, '-')}
+                                list={UserList}
+                                show={UserShow}
+                                create={UserCreate}
+                                edit={UserEdit}
+                                options={{ label: sheet }}
+                            />
+                        ))
+                    ) : (
+                        <div>Нет доступных данных для отображения</div>
+                    )}
+                </Admin>
             )}
         </>
     );
 };
 
-export default App; 
+export default App;

@@ -1,4 +1,5 @@
 import React from 'react';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 const LogoutComponent = ({ onLogout }) => {
     const handleLogout = () => {
@@ -7,9 +8,9 @@ const LogoutComponent = ({ onLogout }) => {
     };
 
     return (
-        <div>
-            <h2>Welcome, {localStorage.getItem('username')}</h2>
-            <button onClick={handleLogout}>Logout</button>
+        <div onClick={handleLogout} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', zIndex: 10 }}>
+            <AccountCircleIcon style={{ color: '#fff' }} />
+            <span style={{ marginLeft: 4, color: '#fff' }}>Logout</span>
         </div>
     );
 };
