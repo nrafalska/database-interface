@@ -13,7 +13,7 @@ const users = {
         tabs: ['NikitaSh Active!', 'NikitaSh INACTIVE']
     },
     RuslanD: { 
-        tabs: ['RuslanD ACTIVE', 'RuslanD Active!', 'RuslanD INACTIVE']
+        tabs: ['RuslanD Active!', 'RuslanD INACTIVE']
     },
     AlexM: { 
         tabs: ['AlexM Active!', 'AlexM INACTIVE']
@@ -25,7 +25,7 @@ const users = {
         tabs: ['MarkT Active!', 'MarkT INACTIVE']
     },
     AntonZh: { 
-        tabs: ['AntonZh ACTIVE', 'AntonZh Active!', 'AntonZh INACTIVE']
+        tabs: ['AntonZh Active!', 'AntonZh INACTIVE']
     },
     Julia: { 
         tabs: ['Julia ACTIVE', 'Julia Active!', 'Julia INACTIVE']
@@ -37,7 +37,7 @@ const users = {
         tabs: ['Olga ACTIVE', 'Olga Active!', 'Olga INACTIVE']
     },
     KolyaS: { 
-        tabs: ['KolyaS Active!', 'KolyaS INACTIVE']
+        tabs: ['KolyaS Active', 'KolyaS INACTIVE']
     },
     NataliiaD: { 
         tabs: ['NataliiaD Active', 'NataliiaD INACTIVE']
@@ -46,7 +46,7 @@ const users = {
         tabs: ['NataliiaG Active', 'NataliiaG INACTIVE']
     },
     Alina: { 
-        tabs: ['Alina Active!', 'Alina InActive']
+        tabs: ['Alina Active', 'Alina InActive']
     },
     MarynaU: { 
         tabs: ['MarynaU ACTIVE', 'MarynaU INACTIVE']
