@@ -1,39 +1,24 @@
-import * as React from 'react';
-import { forwardRef } from 'react';
-import { AppBar, Layout, UserMenu, useLogout } from 'react-admin';
-import { MenuItem } from '@mui/material';
+import React from 'react';
+import { useNavigate } from 'react-router-dom'; // For navigation
 import ExitIcon from '@mui/icons-material/PowerSettingsNew';
+import { MenuItem } from '@mui/material';
+import { useLogout } from 'react-admin'; // For logging out from react-admin
 
-// Кастомная кнопка выхода
-const MyLogoutButton = forwardRef((props, ref) => {
-    const logout = useLogout(); // Получаем функцию logout
-    const handleClick = () => logout(); // Вызываем функцию logout при клике
+const LogoutComponent = (props) => {
+    const logout = useLogout(); // Function for logging out
+    const navigate = useNavigate(); // Navigation hook
+
+    const handleLogout = () => {
+        localStorage.removeItem('username'); // Clear stored user data
+        logout(); // Perform the logout action
+        navigate('/login'); // Redirect to login page
+    };
+
     return (
-        <MenuItem
-            onClick={handleClick}
-            ref={ref}
-            {...props} // Передаем все props для управления клавишами
-        >
+        <MenuItem onClick={handleLogout} {...props}>
             <ExitIcon /> Logout
         </MenuItem>
     );
-});
+};
 
-// Кастомное меню пользователя с кнопкой выхода
-const MyUserMenu = () => (
-    <UserMenu>
-        <MyLogoutButton />
-    </UserMenu>
-);
-
-// Кастомная панель с меню пользователя
-const MyAppBar = () => <AppBar userMenu={<MyUserMenu />} />;
-
-// Кастомный layout для приложения
-const MyLayout = ({ children }) => (
-    <Layout appBar={MyAppBar}>
-        {children}
-    </Layout>
-);
-
-export default MyLayout;
+export default LogoutComponent;

@@ -18,6 +18,8 @@ import UserList from './components/UserList';
 import AuthComponent from './components/AuthComponent';
 import LogoutComponent from './components/LogoutComponent';
 import { useAuth } from './authProvider';
+import MyLayout from './components/MyLayout'; 
+import { useNavigate } from 'react-router-dom';  // Хук для навигации
 
 // Панель действий для каждой записи
 const CustomActions = ({ basePath, data }) => (
@@ -33,7 +35,7 @@ const CustomActions = ({ basePath, data }) => (
 
 // Компонент для отображения записи
 const UserShow = (props) => (
-    <Show {...props} actions={<CustomActions />}>
+    <Show {...props} actions={<CustomActions />} >
         <TabbedShowLayout>
             <Tab label="Основные данные">
                 <TextField source="name" label="Имя клиента" />
@@ -52,6 +54,7 @@ const UserShow = (props) => (
 const App = () => {
     const { user, allowedSheets, login, logout } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
+    const navigate = useNavigate(); // Используем useNavigate для маршрутизации
 
     useEffect(() => {
         setIsLoading(!user);
@@ -63,6 +66,7 @@ const App = () => {
                 <AuthComponent onLogin={login} />
             ) : (
                 <Admin
+                    layout={MyLayout}  // Используем кастомный layout с кнопкой выхода
                     dataProvider={simpleRestProvider('http://localhost:3001')}
                     userMenu={<UserMenu><LogoutComponent onLogout={logout} /></UserMenu>}
                 >
