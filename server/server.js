@@ -32,6 +32,8 @@ async function accessSpreadsheet(range) {
             range,
         });
 
+        console.log('Ответ от Google Sheets:', response.data.values); // Проверка полученных данных
+
         const rows = response.data.values;
         if (!rows || rows.length === 0) {
             throw new Error('No data found');
@@ -53,51 +55,50 @@ async function accessSpreadsheet(range) {
         throw new Error('Failed to retrieve data from Google Sheets');
     }
 }
-
 // Динамическое создание маршрутов для каждого пользователя и типа данных
 const users = [
-    { name: 'natasha', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'nazarii_kramar', sheets: ['Active!', 'ACTIVE', 'INACTIVE'] },
-    { name: 'nikita_shakotko', sheets: ['ACTIVE', 'Shakotko Active!', 'INACTIVE'] },
-    { name: 'ruslan_dawydenko', sheets: ['ACTIVE', 'Dawydenko Active!', 'INACTIVE'] },
-    { name: 'alex_megas', sheets: ['Active!', 'INACTIVE'] },
-    { name: 'vlad_new', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'vladytslav_shkliarov', sheets: ['Active!'] },
-    { name: 'nebojsa', sheets: ['ACTIVE', 'INACTIVE', 'Active!'] },
-    { name: 'mark_tarytsanu', sheets: ['Active!', 'ACTIVE'] },
-    { name: 'anton_zhidkov', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'julia', sheets: ['ACTIVE', 'INACTIVE', 'Krendeleva Active!'] },
-    { name: 'arkadiy', sheets: ['ACTIVE', 'Oskol Active!', 'INACTIVE'] },
-    { name: 'olga', sheets: ['ACTIVE', 'Meshcheryakova Active!', 'INACTIVE'] },
-    { name: 'kolya_solomennyi', sheets: ['Active!', 'INACTIVE'] },
-    { name: 'nataliia_denisenko', sheets: ['Active', 'D INACTIVE'] },
-    { name: 'nataliia_grek', sheets: ['Active', 'G INACTIVE'] },
-    { name: 'alina_kolpakova', sheets: ['Active!', 'InActive'] },
-    { name: 'maryna_urvantseva', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'dmytro_chernuha', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'nikita_yagunov', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'alexandra_belova', sheets: ['ACTIVE', 'INACTIVE'] },
-    { name: 'diana_romaniuk', sheets: ['ACTIVE', 'INACTIVE'] }
+    { name: 'natasha', sheets: [{ type: 'ACTIVE', gid: '1240916250' }, { type: 'INACTIVE', gid: '1540701091' }] },
+    { name: 'nazariik', sheets: [{ type: 'Active!', gid: '90018042' }, { type: 'INACTIVE', gid: '2012750231' }] },
+    { name: 'nikita_shakotko', sheets: [{ type: 'Shakotko Active!', gid: '2113883320' }, { type: 'INACTIVE', gid: '503637199' }] },
+    { name: 'ruslan_dawydenko', sheets: [{ type: 'ACTIVE', gid: '1401851167' }, { type: 'Dawydenko Active!', gid: '668133830' }, { type: 'INACTIVE', gid: '416038541' }] },
+    { name: 'alex_megas', sheets: [{ type: 'Active!', gid: '310291825' }, { type: 'INACTIVE', gid: '430621295' }] },
+    { name: 'nebojsa', sheets: [{ type: 'ACTIVE', gid: '1695684781' }, { type: 'INACTIVE', gid: '1392500008' }, { type: 'Active!', gid: '299232860' }] },
+    { name: 'mark_tarytsanu', sheets: [{ type: 'Active!', gid: '1327900089' }, { type: 'INACTIVE', gid: '1972066586' }] },
+    { name: 'anton_zhidkov', sheets: [{ type: 'ACTIVE', gid: '1334264924' }, { type: 'INACTIVE', gid: '1822325838' }] },
+    { name: 'julia', sheets: [{ type: 'ACTIVE', gid: '1910261012' }, { type: 'Krendeleva Active!', gid: '828755112' }, { type: 'INACTIVE', gid: '352885166' }] },
+    { name: 'arkadiy', sheets: [{ type: 'Osokin Active!', gid: '1436572648' }, { type: 'INACTIVE', gid: '520725355' }] },
+    { name: 'olga', sheets: [{ type: 'ACTIVE', gid: '1884425070' }, { type: 'Meshcheryakova Active!', gid: '449469755' }, { type: 'INACTIVE', gid: '285512120' }] },
+    { name: 'kolya_solomennyi', sheets: [{ type: 'Active!', gid: '11031933' }, { type: 'INACTIVE', gid: '1623940457' }] },
+    { name: 'nataliia_denisenko', sheets: [{ type: 'Active', gid: '774640725' }, { type: 'D INACTIVE', gid: '1563493966' }] },
+    { name: 'nataliia_grek', sheets: [{ type: 'Active', gid: '1800218305' }, { type: 'G INACTIVE', gid: '1862483022' }] },
+    { name: 'alina_kolpakova', sheets: [{ type: 'Active!', gid: '1897384161' }, { type: 'InActive', gid: '99503959' }] },
+    { name: 'maryna_urvantseva', sheets: [{ type: 'ACTIVE', gid: '1621382825' }, { type: 'INACTIVE', gid: '519635099' }] },
+    { name: 'dmytro_chernuha', sheets: [{ type: 'ACTIVE', gid: '1352980819' }, { type: 'INACTIVE', gid: '57061661' }] },
+    { name: 'nikita_yagunov', sheets: [{ type: 'ACTIVE', gid: '1944189408' }, { type: 'INACTIVE', gid: '673863445' }] },
+    { name: 'alexandra_belova', sheets: [{ type: 'ACTIVE', gid: '962214485' }, { type: 'INACTIVE', gid: '1886272138' }] },
+    { name: 'diana_romaniuk', sheets: [{ type: 'ACTIVE', gid: '174663765' }, { type: 'INACTIVE', gid: '1986505364' }] },
 ];
-
 // Пример создания маршрутов на основе списка users
 users.forEach(user => {
-    user.sheets.forEach(sheetType => {
-        app.get(`/${user.name.toLowerCase()}-${sheetType.toLowerCase()}`, async (req, res) => {
+    user.sheets.forEach(sheet => {
+        const sheetName = `${user.name} ${sheet.type}`; // Формируем имя листа
+
+        app.get(`/${user.name.toLowerCase()}-${sheet.type.toLowerCase()}`, async (req, res) => {
             try {
-                const data = await accessSpreadsheet(`${user.name} ${sheetType}!A1:AZ199`);
-                res.setHeader('Content-Range', `${user.name.toLowerCase()}-${sheetType.toLowerCase()} 0-${data.length}/${data.length}`);
+                // Задаем нужный диапазон для каждого листа
+                const data = await accessSpreadsheet(`'${sheetName}'!A1:ZZ1000`);
+                
+                // Устанавливаем заголовки для обработки диапазона данных
+                res.setHeader('Content-Range', `${user.name.toLowerCase()}-${sheet.type.toLowerCase()} 0-${data.length}/${data.length}`);
                 res.setHeader('Access-Control-Expose-Headers', 'Content-Range');
                 res.json(data);
             } catch (error) {
-                console.error(`Error retrieving data for ${user.name} ${sheetType}:`, error);
+                console.error(`Error retrieving data for ${sheetName}:`, error);
                 res.status(500).send('Error retrieving data');
             }
         });
     });
 });
-
-
 // Запуск сервера
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);

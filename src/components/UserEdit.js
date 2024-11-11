@@ -1,5 +1,4 @@
-// src/UserEdit.js
-import * as React from 'react';
+import React from 'react';
 import { Edit, SimpleForm, TextInput, NumberInput } from 'react-admin';
 
 const UserEdit = (props) => (
@@ -16,8 +15,6 @@ const UserEdit = (props) => (
             <NumberInput source="totalContractAmount" label="Сумма контракта" />
             <NumberInput source="currentBalance" label="Текущий баланс" />
             <TextInput source="paymentScheduleChanged" label="График платежей изменен?" />
-
-            {/* Платежные даты и суммы для каждого из 10 платежей */}
             {[...Array(10)].map((_, i) => (
                 <React.Fragment key={i}>
                     <TextInput source={`planDate${i + 1}`} label={`Плановая дата ${i + 1}`} />

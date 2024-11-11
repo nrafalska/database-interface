@@ -10,7 +10,6 @@ import {
     DeleteButton,
     TopToolbar,
     UserMenu,
-    Layout
 } from 'react-admin';
 import simpleRestProvider from 'ra-data-simple-rest';
 import UserCreate from './components/UserCreate';
