@@ -13,7 +13,7 @@ import {
 } from 'react-admin';
 import simpleRestProvider from 'ra-data-simple-rest';
 import UserCreate from './components/UserCreate';
-import UserEdit from './components/UserEdit';
+import UserEdit from './components/UserEdit'; // Импортируем компонент редактирования
 import UserList from './components/UserList';
 import AuthComponent from './components/AuthComponent';
 import LogoutComponent from './components/LogoutComponent';
@@ -33,18 +33,34 @@ const CustomActions = ({ basePath, data }) => (
     </TopToolbar>
 );
 
+const createRecord = async (data) => {
+    const response = await fetch('http://localhost:3001/marynau-inactive/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to create record');
+    }
+    return await response.json();
+};
+
+
 // Компонент для отображения записи
 const UserShow = (props) => (
-    <Show {...props} actions={<CustomActions />} >
+    <Show {...props} actions={<CustomActions />}>
         <TabbedShowLayout>
-            <Tab label="Основные данные">
-                <TextField source="name" label="Имя клиента" />
-                <TextField source="salesManager" label="Менеджер по продажам" />
-                <TextField source="collectionStatus" label="Статус коллекции" />
+            <Tab label="Client Information">
+                <TextField source="name" label="Client Name" />
+                <TextField source="salesManager" label="Sales Manager" />
+                <TextField source="managerName" label="Manager's Name" />
+                <TextField source="collectionStatus" label="Collection Status" />
             </Tab>
-            <Tab label="Финансовая информация">
-                <TextField source="totalContractAmount" label="Общая сумма контракта" />
-                <TextField source="currentBalance" label="Текущий баланс" />
+            <Tab label="Financial Information">
+                <TextField source="totalContractAmount" label="Contract Amount" />
+                <TextField source="currentBalance" label="Current Balance" />
             </Tab>
         </TabbedShowLayout>
     </Show>
@@ -54,7 +70,7 @@ const UserShow = (props) => (
 const App = () => {
     const { user, allowedSheets, login, logout } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
-    const navigate = useNavigate(); // Используем useNavigate для маршрутизации
+    const navigate = useNavigate(); // Хук для навигации
 
     useEffect(() => {
         setIsLoading(!user);
@@ -78,12 +94,12 @@ const App = () => {
                                 list={UserList}
                                 show={UserShow}
                                 create={UserCreate}
-                                edit={UserEdit}
+                                edit={UserEdit} // Подключаем компонент редактирования
                                 options={{ label: sheet }}
                             />
                         ))
                     ) : (
-                        <div>Нет доступных данных для отображения</div>
+                        <div>No available data to display</div>
                     )}
                 </Admin>
             )}

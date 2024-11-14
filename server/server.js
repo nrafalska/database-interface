@@ -11,7 +11,7 @@ app.use(cors());
 // Функция для получения данных из Google Sheets, принимает `range` как параметр
 async function accessSpreadsheet(range) {
     const auth = new google.auth.GoogleAuth({
-        keyFile: path.join(__dirname, 'credentials.json'), // Убедитесь, что путь к вашему JSON-файлу указан правильно
+        keyFile: path.join(__dirname, 'credentials.json'),
         scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
@@ -32,19 +32,16 @@ async function accessSpreadsheet(range) {
             range,
         });
 
-        console.log('Ответ от Google Sheets:', response.data.values); // Проверка полученных данных
-
         const rows = response.data.values;
         if (!rows || rows.length === 0) {
             throw new Error('No data found');
         }
 
-        // Используем первую строку как заголовок для создания объектов
         const headers = rows[0];
         const data = rows.slice(1).map((row, index) => {
             const rowData = { id: index + 1 };
             headers.forEach((header, i) => {
-                rowData[header] = row[i] || ''; // Присваиваем значение из строки или пустую строку
+                rowData[header] = row[i] || '';
             });
             return rowData;
         });
@@ -55,6 +52,43 @@ async function accessSpreadsheet(range) {
         throw new Error('Failed to retrieve data from Google Sheets');
     }
 }
+
+// Функция для добавления данных в Google Sheets
+async function addDataToGoogleSheet(data, sheetName) {
+    const auth = new google.auth.GoogleAuth({
+        keyFile: path.join(__dirname, 'credentials.json'),
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    let client;
+    try {
+        client = await auth.getClient();
+    } catch (authError) {
+        console.error('Authentication error:', authError);
+        throw new Error('Failed to authenticate with Google API');
+    }
+
+    const googleSheets = google.sheets({ version: 'v4', auth: client });
+    const spreadsheetId = '1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y'; // Ваш ID таблицы
+
+    try {
+        const range = `${sheetName}!A1:ZZ1000`; // Диапазон для добавления данных
+        const response = await googleSheets.spreadsheets.values.append({
+            spreadsheetId,
+            range,
+            valueInputOption: 'RAW',
+            resource: {
+                values: [Object.values(data)],  // Преобразуем объект в массив
+            },
+        });
+
+        console.log('Data added to Google Sheets:', response.data);
+    } catch (error) {
+        console.error('Error adding data to Google Sheets:', error);
+        throw new Error('Failed to add data to Google Sheets');
+    }
+}
+
 // Динамическое создание маршрутов для каждого пользователя и типа данных
 const users = [
     { name: 'natasha', sheets: [{ type: 'ACTIVE', gid: '1240916250' }, { type: 'INACTIVE', gid: '1540701091' }] },
@@ -78,17 +112,16 @@ const users = [
     { name: 'alexandrab', sheets: [{ type: 'ACTIVE', gid: '962214485' }, { type: 'INACTIVE', gid: '1886272138' }] },
     { name: 'dianar', sheets: [{ type: 'ACTIVE', gid: '174663765' }, { type: 'INACTIVE', gid: '1986505364' }] },
 ];
-// Пример создания маршрутов на основе списка users
+
+// Пример создания маршрутов на основе списка пользователей
 users.forEach(user => {
     user.sheets.forEach(sheet => {
-        const sheetName = `${user.name} ${sheet.type}`; // Формируем имя листа
+        const sheetName = `${user.name} ${sheet.type}`;
 
+        // Маршрут для получения данных
         app.get(`/${user.name.toLowerCase()}-${sheet.type.toLowerCase()}`, async (req, res) => {
             try {
-                // Задаем нужный диапазон для каждого листа
                 const data = await accessSpreadsheet(`'${sheetName}'!A1:ZZ1000`);
-                
-                // Устанавливаем заголовки для обработки диапазона данных
                 res.setHeader('Content-Range', `${user.name.toLowerCase()}-${sheet.type.toLowerCase()} 0-${data.length}/${data.length}`);
                 res.setHeader('Access-Control-Expose-Headers', 'Content-Range');
                 res.json(data);
@@ -97,8 +130,21 @@ users.forEach(user => {
                 res.status(500).send('Error retrieving data');
             }
         });
+
+        // Маршрут для создания новых данных
+        app.post(`/${user.name.toLowerCase()}-${sheet.type.toLowerCase()}/create`, async (req, res) => {
+            const data = req.body; // Данные, переданные в теле запроса
+            try {
+                await addDataToGoogleSheet(data, sheetName); // Добавляем данные в Google Sheets
+                res.status(201).send('Data created successfully');
+            } catch (error) {
+                console.error('Error creating data:', error);
+                res.status(500).send('Error creating data');
+            }
+        });
     });
 });
+
 // Запуск сервера
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
