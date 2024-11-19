@@ -4,12 +4,13 @@ import { Edit, SimpleForm, TextInput, NumberInput } from 'react-admin';
 const UserEdit = (props) => (
     <Edit {...props}>
         <SimpleForm>
-            <TextInput source="name" label="Client Name" />
+        <TextInput source="id" label="ID" /> {/* Поле ID, тепер доступне для редагування */}
             <TextInput source="salesManager" label="Sales Manager" />
-            <TextInput source="managerName" label="Manager's Name" />
+            <TextInput source="nameOfClient" label="Name of Client" />
+            <TextInput source="managerName" label="Manager Name" />
             <TextInput source="collectionStatus" label="Collection Status" />
-            <TextInput source="dateTillDNC" label="Date Till DNC" />
-            <TextInput source="reasonDNC" label="Reason for DNC" />
+            <TextInput source="dateTillDNC" label="Date till DNC" />
+            <TextInput source="reasonDNC" label="Reason DNC" />
             <TextInput source="companyName" label="Company Name" />
             <TextInput source="shortUsefulInfo" label="Short Useful Info" />
             <NumberInput source="totalContractAmount" label="Total Contract Amount" />
