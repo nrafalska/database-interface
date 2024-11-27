@@ -1,5 +1,5 @@
 import React from 'react';
-import { List, Datagrid, TextField, EditButton, DeleteButton } from 'react-admin';
+import { List, Datagrid, TextField, EditButton} from 'react-admin';
 
 const UserList = (props) => (
     <List {...props}>
@@ -67,7 +67,7 @@ const UserList = (props) => (
             <TextField source="fact date10" label="Fact Date 10" />
 
             <EditButton />
-            <DeleteButton />
+            
         </Datagrid>
     </List>
 );

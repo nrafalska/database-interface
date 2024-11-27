@@ -66,15 +66,51 @@ const App = () => {
             return { data };
         },
         delete: async (resource, params) => {
-            const response = await fetch(`http://localhost:3001/${resource}/delete/${params.id}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-            });
-            if (!response.ok) {
-                throw new Error(`Failed to delete record with ID ${params.id}`);
+            try {
+                const url = `http://localhost:3001/${resource}/delete/${params.id}`;
+                console.log(`Sending DELETE request to: ${url}`);
+        
+                const response = await fetch(url, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+        
+                if (!response.ok) {
+                    const errorMessage = `Failed DELETE request. Status: ${response.status}, StatusText: ${response.statusText}`;
+                    console.error(errorMessage);
+                    throw new Error(errorMessage);
+                }
+        
+                const responseData = await response.json();
+                console.log(`Successfully deleted record with ID ${params.id}:`, responseData);
+        
+                return { data: { id: params.id } };
+            } catch (error) {
+                console.error(`Error during DELETE request: ${error.message}`);
+                throw error;
             }
-            return { data: { id: params.id } };
         },
+        deleteMany: async (resource, params) => {
+            try {
+                const response = await fetch(`http://localhost:3001/${resource}/deleteMany`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids: params.ids }), // Передаём массив ids
+                });
+        
+                if (!response.ok) {
+                    throw new Error(`Failed to delete records in ${resource}`);
+                }
+        
+                return { data: params.ids };
+            } catch (error) {
+                console.error(`Error in deleteMany: ${error.message}`);
+                throw error;
+            }
+        },
+        
+        
+
     };
 
     return isLoading ? (

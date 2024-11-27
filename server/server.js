@@ -135,6 +135,65 @@ async function addDataToGoogleSheet(data, sheetName) {
 }
 
 
+// Функция для удаления строки в Google Sheets
+async function deleteRow(spreadsheetId, sheetName, rowIndex) {
+    const client = await getGoogleClient();
+    const googleSheets = google.sheets({ version: 'v4', auth: client });
+
+    try {
+        console.log(`Fetching sheet ID for "${sheetName}"`);
+        
+        const sheetId = await getSheetId(sheetName, googleSheets, spreadsheetId);
+        console.log(`Sheet ID for "${sheetName}": ${sheetId}`);
+
+        const request = {
+            spreadsheetId,
+            resource: {
+                requests: [
+                    {
+                        deleteRange: {
+                            range: {
+                                sheetId: sheetId,
+                                startRowIndex: rowIndex - 1,
+                                endRowIndex: rowIndex,
+                            },
+                            shiftDimension: 'ROWS',
+                        },
+                    },
+                ],
+            },
+        };
+
+        console.log(`Sending batchUpdate request to delete row ${rowIndex} from sheet "${sheetName}"`);
+        await googleSheets.spreadsheets.batchUpdate(request);
+
+        console.log(`Row ${rowIndex} successfully deleted from sheet "${sheetName}"`);
+    } catch (error) {
+        console.error(`Error deleting row from sheet "${sheetName}": ${error.message}`);
+        throw error;
+    }
+}
+
+
+
+// Вспомогательная функция для получения sheetId по имени
+async function getSheetId(sheetName, googleSheets, spreadsheetId) {
+    const response = await googleSheets.spreadsheets.get({ spreadsheetId });
+    const availableSheets = response.data.sheets.map(sheet => sheet.properties.title);
+
+    console.log('Available sheets:', availableSheets);
+
+    const sheet = response.data.sheets.find(
+        s => s.properties.title.toLowerCase() === sheetName.toLowerCase()
+    );
+    if (!sheet) {
+        console.error(`Sheet with name "${sheetName}" not found. Available sheets: ${availableSheets}`);
+        throw new Error(`Sheet with name "${sheetName}" not found`);
+    }
+    return sheet.properties.sheetId;
+}
+
+
 
 
 
@@ -247,40 +306,61 @@ users.forEach(user => {
         });
         
         // Маршрут для удаления данных
-        app.delete(`/${user.name.toLowerCase()}-${sheet.type.toLowerCase()}/delete/:rowIndex`, async (req, res) => {
-            const { rowIndex } = req.params; // Получаем rowIndex из параметров маршрута
+        app.delete('/:userName-:sheetType/delete/:rowIndex', async (req, res) => {
+            const { userName, sheetType, rowIndex } = req.params;
+        
+            if (!userName || !sheetType || !rowIndex || isNaN(rowIndex)) {
+                res.status(400).send('Missing or invalid parameters: userName, sheetType, or rowIndex');
+                return;
+            }
         
             try {
-                if (isNaN(rowIndex)) {
-                    throw new Error('Row index must be a number');
-                }
+                // Сохраняем оригинальный регистр для названия листа
+                const sheetName = `${userName}${sheetType === 'inactive' ? ' INACTIVE' : ' ACTIVE'}`;
+                console.log(`Attempting to delete row ${rowIndex} from sheet: "${sheetName}"`);
         
-                // Преобразуем rowIndex в число
-                const numericRowIndex = Number(rowIndex);
-        
-                if (numericRowIndex <= 0) {
-                    throw new Error('Row index must be greater than 0 (headers cannot be deleted)');
-                }
-        
-                // Вызов функции для удаления строки из Google Sheets
-                await deleteRowFromGoogleSheet(numericRowIndex, sheetName);
-        
-                // Успешный ответ
-                res.status(200).json({ message: `Row at index ${numericRowIndex} deleted successfully` });
+                await deleteRow('1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y', sheetName, parseInt(rowIndex, 10));
+                res.status(200).send(`Row ${rowIndex} deleted successfully from sheet "${sheetName}".`);
             } catch (error) {
-                // Логируем ошибку
-                console.error(`Error deleting row at index ${rowIndex}:`, error.message);
-        
-                // Возвращаем ответ с соответствующим статусом и сообщением
-                if (error.message.includes('Row index must')) {
-                    res.status(400).json({ error: error.message }); // Ошибка клиента
-                } else if (error.message.includes('not found')) {
-                    res.status(404).json({ error: `Row at index ${rowIndex} not found` }); // Ошибка "не найдено"
-                } else {
-                    res.status(500).json({ error: 'An error occurred while deleting the row' }); // Общая ошибка сервера
-                }
+                console.error(`Error deleting row from sheet "${sheetName}": ${error.message}`);
+                res.status(500).send(`Error deleting row: ${error.message}`);
             }
         });
+        
+        
+        
+ //маршрут для обработки массового удаления:
+ app.post('/:resource/deleteMany', async (req, res) => {
+    const { ids } = req.body;
+    const { resource } = req.params;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        res.status(400).send('Invalid request payload: "ids" must be a non-empty array');
+        return;
+    }
+
+    try {
+        // Преобразуем имя ресурса в точный формат листа
+        const sheetName = resource
+            .split('-')
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .join(' '); // "marynau-inactive" -> "Marynau Inactive"
+
+        console.log(`Attempting to delete records from sheet: "${sheetName}"`);
+
+        for (const id of ids) {
+            console.log(`Deleting row with ID: ${id}`);
+            await deleteRow('1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y', sheetName, parseInt(id, 10));
+        }
+
+        res.status(200).send(`Successfully deleted records: ${ids.join(', ')}`);
+    } catch (error) {
+        console.error(`Error deleting records from sheet "${sheetName}": ${error.message}`);
+        res.status(500).send(`Error deleting records: ${error.message}`);
+    }
+});
+
+
     });
 });
 
