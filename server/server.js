@@ -48,7 +48,7 @@ async function accessSpreadsheet(range) {
         throw error;
     }
 }
-
+// Функция для добавления строки в Google Sheets
 async function addDataToGoogleSheet(data, sheetName) {
     const auth = new google.auth.GoogleAuth({
         keyFile: path.join(__dirname, 'credentials.json'),
@@ -62,6 +62,11 @@ async function addDataToGoogleSheet(data, sheetName) {
     try {
         console.log('--- Starting Add Data Process ---');
 
+        // **Добавлено:** Проверка имени листа
+        if (!sheetName || typeof sheetName !== 'string') {
+            throw new Error('Invalid sheetName provided');
+        }
+
         // Получение заголовков
         const headerRange = `${sheetName}!A1:BH1`; // Корректный диапазон заголовков
         console.log(`Fetching headers from range: ${headerRange}`);
@@ -73,7 +78,12 @@ async function addDataToGoogleSheet(data, sheetName) {
         const rawHeaders = headerResponse.data.values ? headerResponse.data.values[0] : [];
         console.log('Raw Headers from Google Sheets:', rawHeaders);
 
-        // Фильтрация пустых заголовков
+        // **Добавлено:** Проверка наличия заголовков
+        if (!rawHeaders || rawHeaders.length === 0) {
+            console.error('No headers found in the specified sheet.');
+            throw new Error('No headers available in the sheet.');
+        }
+
         const headers = rawHeaders.filter((header) => header && header.trim());
         console.log('Filtered Headers:', headers);
 
@@ -87,17 +97,17 @@ async function addDataToGoogleSheet(data, sheetName) {
 
         // Сопоставление данных с заголовками
         const row = headers.map((header) => {
-            const value = data[header] !== undefined ? data[header] : '';
+            const value = data[header] !== undefined ? data[header] : ''; // Значение по умолчанию — пустая строка
             console.log(`Header: "${header}" -> Value: "${value}"`);
             return value;
         });
 
         console.log('Generated Row:', row);
 
-        // Проверка длины строки
+        // **Добавлено:** Предупреждение, если длины строки и заголовков не совпадают
         if (row.length !== headers.length) {
             console.warn(
-                `Row length (${row.length}) does not match headers length (${headers.length})`
+                `Row length (${row.length}) does not match headers length (${headers.length}).`
             );
         }
 
@@ -111,6 +121,9 @@ async function addDataToGoogleSheet(data, sheetName) {
 
         const numberOfRows = dataResponse.data.values ? dataResponse.data.values.length : 0;
         const nextRowIndex = numberOfRows + 1;
+
+        // **Добавлено:** Логирование следующей строки
+        console.log(`Next available row index: ${nextRowIndex}`);
 
         // Указание диапазона для записи, начиная с первого столбца новой строки
         const writeRange = `${sheetName}!A${nextRowIndex}`;
@@ -127,12 +140,17 @@ async function addDataToGoogleSheet(data, sheetName) {
         });
 
         console.log('Data successfully written to Google Sheets:', row);
+
+        // **Добавлено:** Уведомление об успехе
+        console.log(`Row successfully added at index ${nextRowIndex}`);
     } catch (error) {
+        // **Добавлено:** Улучшенное логирование ошибок
         console.error('Error adding data to Google Sheets:', error.message);
         console.error('Error details:', error);
         throw error;
     }
 }
+
 
 
 // Функция для удаления строки в Google Sheets
@@ -197,28 +215,20 @@ async function getSheetId(sheetName, googleSheets, spreadsheetId) {
 
 
 
-// Функция для редактирования данных в Google Sheets
+// Функция для обновления данных в Google Sheets
 async function updateDataInGoogleSheet(id, data, sheetName) {
     const auth = new google.auth.GoogleAuth({
         keyFile: path.join(__dirname, 'credentials.json'),
         scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
-    let client;
     try {
-        client = await auth.getClient();
-    } catch (authError) {
-        console.error('Authentication error:', authError);
-        throw new Error('Failed to authenticate with Google API');
-    }
+        const client = await auth.getClient();
+        const googleSheets = google.sheets({ version: 'v4', auth: client });
+        const spreadsheetId = '1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y'; // Ваш ID таблицы
 
-    const googleSheets = google.sheets({ version: 'v4', auth: client });
-    const spreadsheetId = '1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y'; // Ваш ID таблицы
-
-    try {
+        // Чтение текущих данных листа
         const range = `${sheetName}!A1:ZZ1000`;
-
-        // Получаем существующие данные
         const response = await googleSheets.spreadsheets.values.get({
             spreadsheetId,
             range,
@@ -226,18 +236,24 @@ async function updateDataInGoogleSheet(id, data, sheetName) {
 
         const rows = response.data.values;
         if (!rows || rows.length === 0) {
-            throw new Error('No data found');
+            throw new Error(`No data found in sheet "${sheetName}"`);
         }
 
-        const headers = rows[0];
-        const rowIndex = rows.findIndex(row => row[0] == id);
+        const headers = rows[0]; // Получаем заголовки
+        const rowIndex = rows.findIndex(row => row[0] == id); // Находим индекс строки по ID
 
         if (rowIndex === -1) {
-            throw new Error(`Record with ID ${id} not found`);
+            throw new Error(`Record with ID ${id} not found in sheet "${sheetName}"`);
         }
 
-        // Обновляем строку
-        const updatedRow = headers.map(header => data[header] || '');
+        // Обновляем строку на основе переданных данных
+        const updatedRow = headers.map(header => {
+            const value = data[header] || '';
+            console.log(`Updating column "${header}": ${value}`);
+            return value;
+        });
+
+        // Запись обновленных данных в лист
         await googleSheets.spreadsheets.values.update({
             spreadsheetId,
             range: `${sheetName}!A${rowIndex + 1}`,
@@ -247,12 +263,13 @@ async function updateDataInGoogleSheet(id, data, sheetName) {
             },
         });
 
-        console.log(`Record with ID ${id} updated successfully`);
+        console.log(`Record with ID ${id} successfully updated in sheet "${sheetName}"`);
     } catch (error) {
-        console.error('Error updating data in Google Sheets:', error);
-        throw new Error('Failed to update data in Google Sheets');
+        console.error(`Error updating data in sheet "${sheetName}":`, error.message);
+        throw new Error(`Failed to update data: ${error.message}`);
     }
 }
+
 
 
 // Динамическое создание маршрутов для каждого пользователя и типа данных
@@ -324,6 +341,31 @@ users.forEach(user => {
             } catch (error) {
                 console.error(`Error deleting row from sheet "${sheetName}": ${error.message}`);
                 res.status(500).send(`Error deleting row: ${error.message}`);
+            }
+        });
+        // Маршрут для обновления данных
+        app.put('/:resource/update/:id', async (req, res) => {
+            const { resource, id } = req.params; // resource - имя листа, id - строка для обновления
+            const updatedData = req.body; // Данные, которые нужно обновить
+        
+            if (!resource || !id || !updatedData) {
+                res.status(400).send('Missing required parameters: resource, id, or updatedData');
+                return;
+            }
+        
+            // Преобразуем имя листа в корректный формат
+            const sheetName = resource.replace('-', ' ');
+        
+            try {
+                console.log(`Updating record with ID: ${id} in sheet: "${sheetName}"`);
+        
+                // Вызываем функцию для обновления данных в Google Sheets
+                await updateDataInGoogleSheet(id, updatedData, sheetName);
+        
+                res.status(200).send(`Record with ID: ${id} updated successfully in sheet "${sheetName}".`);
+            } catch (error) {
+                console.error(`Error updating record with ID: ${id} in sheet "${sheetName}":`, error.message);
+                res.status(500).send(`Error updating record: ${error.message}`);
             }
         });
         

@@ -7,6 +7,8 @@ import {
     Tab,
     TextField,
     UserMenu,
+    useNotify,
+    CustomRoutes // Добавлено
 } from 'react-admin';
 import UserCreate from './components/UserCreate';
 import UserEdit from './components/UserEdit';
@@ -15,10 +17,12 @@ import AuthComponent from './components/AuthComponent';
 import LogoutComponent from './components/LogoutComponent';
 import { useAuth } from './authProvider';
 import MyLayout from './components/MyLayout';
+import { Route } from 'react-router-dom';
 
 const App = () => {
     const { user, allowedSheets, login, logout } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
+    const notify = useNotify(); // Добавлено
 
     useEffect(() => {
         setIsLoading(!user);
@@ -27,43 +31,66 @@ const App = () => {
     // Кастомизация dataProvider
     const dataProvider = {
         getList: async (resource) => {
-            const response = await fetch(`http://localhost:3001/${resource}`);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch list of ${resource}`);
+            try {
+                const response = await fetch(`http://localhost:3001/${resource}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch list of ${resource}`);
+                }
+                const data = await response.json();
+                return { data, total: data.length };
+            } catch (error) {
+                notify(`Error fetching list: ${error.message}`, { type: 'error' }); // Добавлено уведомление
+                throw error;
             }
-            const data = await response.json();
-            return { data, total: data.length };
         },
         getOne: async (resource, params) => {
-            const response = await fetch(`http://localhost:3001/${resource}/${params.id}`);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch record with ID ${params.id}`);
+            try {
+                const response = await fetch(`http://localhost:3001/${resource}/${params.id}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch record with ID ${params.id}`);
+                }
+                const data = await response.json();
+                return { data };
+            } catch (error) {
+                notify(`Error fetching record: ${error.message}`, { type: 'error' }); // Добавлено уведомление
+                throw error;
             }
-            const data = await response.json();
-            return { data };
         },
         create: async (resource, params) => {
-            const response = await fetch(`http://localhost:3001/${resource}/create`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(params.data),
-            });
-            if (!response.ok) {
-                throw new Error(`Failed to create record in ${resource}`);
+            try {
+                const response = await fetch(`http://localhost:3001/${resource}/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params.data),
+                });
+                if (!response.ok) {
+                    throw new Error(`Failed to create record in ${resource}`);
+                }
+                notify('Record created successfully!', { type: 'success' }); // Добавлено уведомление
+                return { data: params.data };
+            } catch (error) {
+                notify(`Error creating record: ${error.message}`, { type: 'error' }); // Добавлено уведомление
+                throw error;
             }
-            return { data: params.data };
         },
         update: async (resource, params) => {
-            const response = await fetch(`http://localhost:3001/${resource}/${params.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(params.data),
-            });
-            if (!response.ok) {
-                throw new Error(`Failed to update record with ID ${params.id}`);
+            try {
+                const response = await fetch(`http://localhost:3001/${resource}/update/${params.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params.data),
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Failed to update record with ID ${params.id}: ${errorText}`);
+                }
+                const data = await response.json();
+                notify('Record updated successfully!', { type: 'success' }); // Добавлено уведомление
+                return { data };
+            } catch (error) {
+                notify(`Error updating record: ${error.message}`, { type: 'error' }); // Добавлено уведомление
+                throw error;
             }
-            const data = await response.json();
-            return { data };
         },
         delete: async (resource, params) => {
             try {
@@ -82,11 +109,10 @@ const App = () => {
                 }
         
                 const responseData = await response.json();
-                console.log(`Successfully deleted record with ID ${params.id}:`, responseData);
-        
+                notify('Record deleted successfully!', { type: 'success' }); // Добавлено уведомление
                 return { data: { id: params.id } };
             } catch (error) {
-                console.error(`Error during DELETE request: ${error.message}`);
+                notify(`Error deleting record: ${error.message}`, { type: 'error' }); // Добавлено уведомление
                 throw error;
             }
         },
@@ -101,16 +127,13 @@ const App = () => {
                 if (!response.ok) {
                     throw new Error(`Failed to delete records in ${resource}`);
                 }
-        
+                notify('Records deleted successfully!', { type: 'success' }); // Добавлено уведомление
                 return { data: params.ids };
             } catch (error) {
-                console.error(`Error in deleteMany: ${error.message}`);
+                notify(`Error deleting records: ${error.message}`, { type: 'error' }); // Добавлено уведомление
                 throw error;
             }
         },
-        
-        
-
     };
 
     return isLoading ? (
@@ -124,6 +147,12 @@ const App = () => {
                     <LogoutComponent onLogout={logout} />
                 </UserMenu>
             }
+            customRoutes={
+                <CustomRoutes>
+                    {/* Маршрут для создания записи */}
+                    <Route path="/:resource/create" element={<UserCreate />} />
+                </CustomRoutes>
+            }
         >
             {allowedSheets?.length > 0 ? (
                 allowedSheets.map((sheet) => (
@@ -131,6 +160,8 @@ const App = () => {
                         key={sheet}
                         name={sheet.toLowerCase().replace(/\s+/g, '-')}
                         list={UserList}
+                        create={UserCreate}
+                        edit={UserEdit}
                         show={() => (
                             <Show>
                                 <TabbedShowLayout>
@@ -160,12 +191,11 @@ const App = () => {
                                     </div>
                                 ))}
                             </Tab>
-
                                 </TabbedShowLayout>
                             </Show>
                         )}
-                        create={UserCreate}
-                        edit={UserEdit}
+                        
+                        
                         options={{ label: sheet }}
                     />
                 ))
