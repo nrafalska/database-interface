@@ -9,6 +9,7 @@ import {
     useNotify,
     useRedirect,
     useDataProvider,
+    useRefresh,
     useRecordContext,
 } from 'react-admin';
 
@@ -17,36 +18,63 @@ const CustomDeleteButton = ({ resource }) => {
     const notify = useNotify();
     const redirect = useRedirect();
     const dataProvider = useDataProvider();
-    const record = useRecordContext(); // Получение текущей записи
+    const refresh = useRefresh();
+    const record = useRecordContext();
 
-    const handleDelete = async () => {
-        if (!record || !record.id) {
-            notify('Record or Record ID not found', { type: 'warning' });
+    const handleDelete = async (rowIndex) => {
+        if (!rowIndex || isNaN(rowIndex)) {
+            console.error('Invalid rowIndex:', rowIndex);
             return;
         }
-
-        if (window.confirm(`Are you sure you want to delete record with ID ${record.id}?`)) {
-            try {
-                // Логируем удаление
-                console.log(`Attempting to delete record with ID: ${record.id} from resource: ${resource}`);
-
-                await dataProvider.delete(resource, { id: record.id });
-                notify('Record deleted successfully', { type: 'success' });
-                redirect(`/${resource}`);
-            } catch (error) {
-                console.error(`Error deleting record with ID ${record.id}:`, error);
-                notify(`Error deleting record: ${error.message}`, { type: 'error' });
+    
+        try {
+            console.log(`Attempting to delete row with index: ${rowIndex}`);
+    
+            const response = await fetch(`http://localhost:3001/marynau-inactive/delete/${rowIndex}`, {
+                method: 'DELETE',
+            });
+    
+            if (!response.ok) {
+                throw new Error(`Failed to delete row with index: ${rowIndex}`);
             }
+    
+            console.log(`Row ${rowIndex} deleted successfully`);
+            notify('Row deleted successfully', { type: 'success' });
+        } catch (error) {
+            console.error(`Error deleting row with index ${rowIndex}:`, error.message);
+            notify(`Error deleting row: ${error.message}`, { type: 'error' });
         }
     };
+    
+};
+const handleDeleteMany = async (ids) => {
+    console.log('Deleting records with IDs:', ids);
+    try {
+        const response = await fetch(`http://localhost:3001/${resource}/deleteMany`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids }),
+        });
 
-    return <Button label="Delete" onClick={handleDelete} />;
+        if (!response.ok) {
+            throw new Error(`Failed to delete records: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('Response from server:', result);
+        notify('Records deleted successfully', { type: 'success' });
+        refresh(); // Перезагрузка данных
+    } catch (error) {
+        console.error('Error deleting records:', error.message);
+        notify(`Error deleting records: ${error.message}`, { type: 'error' });
+    }
 };
 
-// Форма для редактирования/создания записей
-const CustomForm = ({ onSubmit }) => {
+
+// Основная форма
+const CustomForm = ({ resource }) => {
     const [formData, setFormData] = useState({
-        "ID": '',
+        ID: '',
         "Sales manager": '',
         "Name of client": '',
         "Manger name": '',
@@ -67,6 +95,10 @@ const CustomForm = ({ onSubmit }) => {
         }, {}),
     });
 
+    const notify = useNotify();
+    const dataProvider = useDataProvider();
+    const refresh = useRefresh();
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
@@ -76,8 +108,20 @@ const CustomForm = ({ onSubmit }) => {
     };
 
     const handleSubmit = async () => {
-        console.log('Submitted form data:', formData);
-        if (onSubmit) onSubmit(formData);
+        if (!resource) {
+            notify('Error: Resource is undefined', { type: 'error' });
+            return;
+        }
+
+        try {
+            console.log(`Submitting form data to resource: ${resource}`);
+            await dataProvider.create(resource, { data: formData });
+            notify(`Record successfully added to ${resource}!`, { type: 'success' });
+            refresh(); // Обновляем данные
+        } catch (error) {
+            console.error(`Error creating record for resource ${resource}:`, error);
+            notify(`Error creating record: ${error.message}`, { type: 'error' });
+        }
     };
 
     return (
@@ -88,7 +132,7 @@ const CustomForm = ({ onSubmit }) => {
             <TextInput source="Manger name" name="Manger name" label="Manager Name" value={formData["Manger name"]} onChange={handleChange} />
             <TextInput source="Collection status" name="Collection status" label="Collection Status" value={formData["Collection status"]} onChange={handleChange} />
             <TextInput source="Date till DNC" name="Date till DNC" label="Date till DNC" value={formData["Date till DNC"]} onChange={handleChange} />
-            <TextInput source="Reason DNC" name="Reason DNC" label="Reason for DNC" value={formData["Reason DNC"]} onChange={handleChange} />
+            <TextInput source="Reason DNC" name="Reason DNC" label="Reason DNC" value={formData["Reason DNC"]} onChange={handleChange} />
             <TextInput source="Company name" name="Company name" label="Company Name" value={formData["Company name"]} onChange={handleChange} />
             <TextInput source="Short Useful Info" name="Short Useful Info" label="Short Useful Info" value={formData["Short Useful Info"]} onChange={handleChange} />
             <NumberInput source="Total contract amount" name="Total contract amount" label="Total Contract Amount" value={formData["Total contract amount"]} onChange={handleChange} />

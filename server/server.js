@@ -155,16 +155,20 @@ async function addDataToGoogleSheet(data, sheetName) {
 
 // Функция для удаления строки в Google Sheets
 async function deleteRow(spreadsheetId, sheetName, rowIndex) {
+    console.log(`Deleting row in sheet "${sheetName}" at index ${rowIndex}`);
+
     const client = await getGoogleClient();
     const googleSheets = google.sheets({ version: 'v4', auth: client });
 
     try {
-        console.log(`Fetching sheet ID for "${sheetName}"`);
-        
         const sheetId = await getSheetId(sheetName, googleSheets, spreadsheetId);
-        console.log(`Sheet ID for "${sheetName}": ${sheetId}`);
+        console.log('Sheet ID:', sheetId);
 
-        const request = {
+        if (rowIndex <= 0) {
+            throw new Error(`Invalid rowIndex: ${rowIndex}. Row indices must start from 1.`);
+        }
+
+        await googleSheets.spreadsheets.batchUpdate({
             spreadsheetId,
             resource: {
                 requests: [
@@ -180,34 +184,32 @@ async function deleteRow(spreadsheetId, sheetName, rowIndex) {
                     },
                 ],
             },
-        };
+        });
 
-        console.log(`Sending batchUpdate request to delete row ${rowIndex} from sheet "${sheetName}"`);
-        await googleSheets.spreadsheets.batchUpdate(request);
-
-        console.log(`Row ${rowIndex} successfully deleted from sheet "${sheetName}"`);
+        console.log(`Row ${rowIndex} deleted successfully`);
     } catch (error) {
-        console.error(`Error deleting row from sheet "${sheetName}": ${error.message}`);
+        console.error(`Error deleting row ${rowIndex} in sheet "${sheetName}":`, error.message);
         throw error;
     }
 }
 
 
 
+
 // Вспомогательная функция для получения sheetId по имени
 async function getSheetId(sheetName, googleSheets, spreadsheetId) {
     const response = await googleSheets.spreadsheets.get({ spreadsheetId });
-    const availableSheets = response.data.sheets.map(sheet => sheet.properties.title);
-
-    console.log('Available sheets:', availableSheets);
+    console.log('Available sheets:', response.data.sheets.map(s => s.properties.title));
 
     const sheet = response.data.sheets.find(
         s => s.properties.title.toLowerCase() === sheetName.toLowerCase()
     );
+
     if (!sheet) {
-        console.error(`Sheet with name "${sheetName}" not found. Available sheets: ${availableSheets}`);
-        throw new Error(`Sheet with name "${sheetName}" not found`);
+        console.error(`Sheet "${sheetName}" not found`);
+        throw new Error(`Sheet "${sheetName}" not found`);
     }
+
     return sheet.properties.sheetId;
 }
 
@@ -270,7 +272,14 @@ async function updateDataInGoogleSheet(id, data, sheetName) {
     }
 }
 
-
+// Вспомогательная функция для преобразования ресурса в корректное имя листа
+function getSheetName(resource) {
+    return resource
+        .split('-')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ')
+        .trim();
+}
 
 // Динамическое создание маршрутов для каждого пользователя и типа данных
 const users = [
@@ -321,6 +330,24 @@ users.forEach(user => {
                 res.status(500).send(`Error creating data: ${error.message}`);
             }
         });
+        // Вспомогательный маршрут для вывода списка листов
+app.get('/list-sheets', async (req, res) => {
+    try {
+        const client = await getGoogleClient(); // Используем вашу функцию getGoogleClient
+        const googleSheets = google.sheets({ version: 'v4', auth: client });
+        const response = await googleSheets.spreadsheets.get({ spreadsheetId });
+
+        // Получаем список названий листов
+        const sheets = response.data.sheets.map(sheet => sheet.properties.title);
+        console.log('Available sheets:', sheets); // Логируем доступные листы
+
+        res.json({ sheets }); // Возвращаем список листов
+    } catch (error) {
+        console.error('Error listing sheets:', error.message);
+        res.status(500).send(`Error listing sheets: ${error.message}`);
+    }
+});
+
         
         // Маршрут для удаления данных
         app.delete('/:userName-:sheetType/delete/:rowIndex', async (req, res) => {
@@ -331,78 +358,137 @@ users.forEach(user => {
                 return;
             }
         
-            try {
-                // Сохраняем оригинальный регистр для названия листа
-                const sheetName = `${userName}${sheetType === 'inactive' ? ' INACTIVE' : ' ACTIVE'}`;
-                console.log(`Attempting to delete row ${rowIndex} from sheet: "${sheetName}"`);
+            const sheetName = `${userName} ${sheetType === 'inactive' ? 'INACTIVE' : 'ACTIVE'}`.trim();
+            const parsedRowIndex = parseInt(rowIndex, 10);
         
-                await deleteRow('1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y', sheetName, parseInt(rowIndex, 10));
-                res.status(200).send(`Row ${rowIndex} deleted successfully from sheet "${sheetName}".`);
+            try {
+                // Логируем значения для отладки
+                console.log('User Name:', userName);
+                console.log('Sheet Type:', sheetType);
+                console.log('Sheet Name:', sheetName);
+                console.log('Row Index:', rowIndex);
+        
+                if (parsedRowIndex <= 0) {
+                    throw new Error('Row index must be greater than 0');
+                }
+        
+                await deleteRow('1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y', sheetName, parsedRowIndex);
+                res.status(200).send(`Row ${parsedRowIndex} deleted successfully from sheet "${sheetName}".`);
             } catch (error) {
-                console.error(`Error deleting row from sheet "${sheetName}": ${error.message}`);
+                console.error(`Error deleting row ${parsedRowIndex} in sheet "${sheetName}": ${error.message}`);
                 res.status(500).send(`Error deleting row: ${error.message}`);
             }
         });
-        // Маршрут для обновления данных
+        
+        
+        // Обновление записи
         app.put('/:resource/update/:id', async (req, res) => {
-            const { resource, id } = req.params; // resource - имя листа, id - строка для обновления
-            const updatedData = req.body; // Данные, которые нужно обновить
-        
-            if (!resource || !id || !updatedData) {
-                res.status(400).send('Missing required parameters: resource, id, or updatedData');
-                return;
-            }
-        
-            // Преобразуем имя листа в корректный формат
-            const sheetName = resource.replace('-', ' ');
+            const { resource, id } = req.params;
+            const updatedData = req.body;
         
             try {
-                console.log(`Updating record with ID: ${id} in sheet: "${sheetName}"`);
+                const sheetName = getSheetName(resource);
         
-                // Вызываем функцию для обновления данных в Google Sheets
+                // Логируем значения для отладки
+                console.log('Resource:', resource);
+                console.log('Sheet name:', sheetName);
+                console.log('Updating record with ID:', id);
+                console.log('Updated data:', updatedData);
+        
                 await updateDataInGoogleSheet(id, updatedData, sheetName);
         
                 res.status(200).send(`Record with ID: ${id} updated successfully in sheet "${sheetName}".`);
             } catch (error) {
-                console.error(`Error updating record with ID: ${id} in sheet "${sheetName}":`, error.message);
+                console.error(`Error updating record with ID ${id} in sheet "${sheetName}":`, error.message);
                 res.status(500).send(`Error updating record: ${error.message}`);
             }
         });
         
         
         
- //маршрут для обработки массового удаления:
- app.post('/:resource/deleteMany', async (req, res) => {
+        
+        // Маршрут для обработки массового удаления
+app.post('/:resource/deleteMany', async (req, res) => {
     const { ids } = req.body;
     const { resource } = req.params;
 
+    console.log('Resource:', resource);
+    console.log('IDs to delete:', ids);
+
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        console.error('Invalid request payload: "ids" must be a non-empty array');
         res.status(400).send('Invalid request payload: "ids" must be a non-empty array');
         return;
     }
 
+    const sheetName = getSheetName(resource);
+    console.log('Sheet name:', sheetName);
+
     try {
-        // Преобразуем имя ресурса в точный формат листа
-        const sheetName = resource
-            .split('-')
-            .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-            .join(' '); // "marynau-inactive" -> "Marynau Inactive"
+        const results = await Promise.allSettled(
+            ids.map(async id => {
+                console.log(`Deleting row with ID: ${id}`);
+                await deleteRow('1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y', sheetName, parseInt(id, 10));
+                return id;
+            })
+        );
 
-        console.log(`Attempting to delete records from sheet: "${sheetName}"`);
+        const successfulDeletes = results
+            .filter(result => result.status === 'fulfilled')
+            .map(result => result.value);
 
-        for (const id of ids) {
-            console.log(`Deleting row with ID: ${id}`);
-            await deleteRow('1040ZuR04Gvwe2a-hWLB91SM__QXBOk22HDsfHYyNo6Y', sheetName, parseInt(id, 10));
+        const failedDeletes = results
+            .filter(result => result.status === 'rejected')
+            .map(result => result.reason.message);
+
+        console.log('Successful deletes:', successfulDeletes);
+        console.log('Failed deletes:', failedDeletes);
+
+        if (failedDeletes.length > 0) {
+            res.status(207).send({
+                message: 'Partial success: some records were not deleted.',
+                successfulDeletes,
+                failedDeletes,
+            });
+        } else {
+            res.status(200).send(`Successfully deleted records: ${successfulDeletes.join(', ')}`);
         }
-
-        res.status(200).send(`Successfully deleted records: ${ids.join(', ')}`);
     } catch (error) {
-        console.error(`Error deleting records from sheet "${sheetName}": ${error.message}`);
-        res.status(500).send(`Error deleting records: ${error.message}`);
+        console.error('Critical error deleting records:', error.message);
+        res.status(500).send(`Critical error deleting records: ${error.message}`);
     }
 });
 
 
+        // Редактирование записи
+        app.get('/:resource/:id', async (req, res) => {
+            const { resource, id } = req.params;
+        
+            try {
+                const sheetName = resource
+                    .split('-')
+                    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+                    .join(' ')
+                    .trim();
+        
+                console.log('Fetching data for sheet:', sheetName, 'ID:', id);
+        
+                const range = `${sheetName}!A1:ZZ1000`;
+                const data = await accessSpreadsheet(range);
+        
+                const record = data.find(row => row.id == id);
+                if (!record) {
+                    return res.status(404).send(`Record with ID ${id} not found in sheet "${sheetName}"`);
+                }
+        
+                res.json(record);
+            } catch (error) {
+                console.error('Error fetching record:', error.message);
+                res.status(500).send(`Error fetching record: ${error.message}`);
+            }
+        });
+        
+        
     });
 });
 

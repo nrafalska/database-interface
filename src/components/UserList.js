@@ -66,7 +66,8 @@ const UserList = (props) => (
             <TextField source="fact amount10" label="Fact Amount 10" />
             <TextField source="fact date10" label="Fact Date 10" />
 
-            <EditButton />
+            <EditButton label="Edit" />
+           
             
         </Datagrid>
     </List>
